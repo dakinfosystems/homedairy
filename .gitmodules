@@ -1,0 +1,6 @@
+[submodule "homedairy-ios"]
+	path = homedairy-ios
+	url = https://github.com/dakinfosystems/homedairy-ios.git
+[submodule "homedairy-android"]
+	path = homedairy-android
+	url = https://github.com/dakinfosystems/homedairy-android.git
