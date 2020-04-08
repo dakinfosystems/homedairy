@@ -1,0 +1,11 @@
+.d-background
+    img(src="/images/1920x1080-colorful-geometry-hexagon.webp")
+
+include header.pug
+.d-body.row.align-items-center
+    .col.bg-transparent.text-white.align-self-center.text-center
+        .head
+            h1= error.status
+        p #{message}. Go to <a href="/"> Home
+<!--Please find stack trace below.
+<pre><%= error.stack %></pre>-->

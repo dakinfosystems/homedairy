@@ -1,0 +1,16 @@
+doctype
+html
+  head
+    title= title
+    block meta
+        meta(name="viewport", content="width=device-width, initial-scale=1")
+    block seo
+    block style
+        link(rel="stylesheet", href="/stylesheets/style.css")
+    
+    block script
+  body
+    .d-container
+      .d-content
+        block content
+      include template/footer.pug

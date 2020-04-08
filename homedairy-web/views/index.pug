@@ -1,0 +1,9 @@
+extends layout.pug
+
+include template/bootstrap.pug
+
+append content
+  if page == "home"
+    include template/home.pug
+  else if page == "error"
+    include template/error.pug
