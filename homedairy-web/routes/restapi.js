@@ -1,12 +1,13 @@
 var express = require('express');
 var router = express.Router();
 
-/* POST login. */
-router.post('/dologin', function(req, res, next) {
-    console.log(JSON.stringify(req.body));
+var AuthorizationAction = require("../actions/authorization");
+var UserAction = require("../actions/users");
 
-    res.send("OK");
-    res.end();
-});
+/* POST login. */
+router.post('/dologin', AuthorizationAction.handler.login);
+
+router.get("/get/users", UserAction.handler.getUser);
+router.get("/get/users/:id", UserAction.handler.getUser);
 
 module.exports = router;
