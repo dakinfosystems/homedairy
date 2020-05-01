@@ -64,3 +64,4 @@ typings/
 *.code-workspace
 package-lock.json
 public/
+db/

@@ -27,6 +27,7 @@
     "gulp-sourcemaps": "^2.6.5",
     "gulp-webp": "^4.0.1",
     "nodemon": "~2.0.2",
-    "sass": "^1.26.3"
+    "sass": "^1.26.3",
+    "@mysql/xdevapi": "8.0.19"
   }
 }

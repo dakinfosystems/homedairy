@@ -3,8 +3,13 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
+var dotenv = require("./lib/dotenv");
 
 var app = express();
+
+// Reader DB configuration
+dotenv.read("./db.env");
+// console.log(JSON.stringify(process.env, null, 4));
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
