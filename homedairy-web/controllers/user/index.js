@@ -7,19 +7,22 @@ exports.list = (filters) => {
         // console.log("filters: " + JSON.stringify(filters));
         for(let attr in filters) {
             switch(attr) {
-                case "mobile":
-                    filters[attr] =  "%" + filters[attr];
-                case "name":
-                case "userid":
-                    where["or"] = where["or"] || {};
-                    where["or"][attr] = {
-                        "like": filters[attr] + "%"
+                case "q":
+                    where["or"] =  {
+                        "name": {
+                            "like": "%" + filters[attr] + "%"
+                        },
+                        "mobile": {
+                            "like": filters[attr] + "%",
+                        }
                     };
                     break;
-                default:
+                case "userType":
                     where[attr] = {
                         "eq": filters[attr]
-                    };
+                    }
+                    break;
+                default:
                     break;
             }
         }
@@ -37,5 +40,7 @@ exports.list = (filters) => {
 }
 
 exports.add = (user) => {
+    /* Add user id same as mobile number */
+    user.userid = user.mobile;
     return UserModel.add(user)
 }

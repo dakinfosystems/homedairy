@@ -8,7 +8,14 @@ exports.handler = {
         UserMiddleware.searchFilterNeeded(false),
         Handlers.users.get
     ],
-    addUser: [
+    addCustomer: [
+        UserMiddleware.addCustomerUserType(),
+        UserMiddleware.checkSignUpParamter,
+        UserMiddleware.encryptPassword,
+        Handlers.users.add
+    ],
+    addSeller: [
+        UserMiddleware.addSellerUserType(),
         UserMiddleware.checkSignUpParamter,
         UserMiddleware.encryptPassword,
         Handlers.users.add

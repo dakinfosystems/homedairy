@@ -4,6 +4,16 @@ var bcrypt = require("bcrypt");
 
 const saltRounds = 10;
 
+/**
+ * It verifies user password. If password is correct then next handle will be called, If false than error response
+ * will be sent.
+ * @param {object} req
+ * Request object
+ * @param {object} res
+ * Response Object
+ * @param {object} next
+ * Function to call next request handler
+ */
 exports.verifyPassword = (req, res, next) => {
     // console.log("verifyPassword");
     UserModel.findByUserId(req.body.userid)
@@ -32,6 +42,15 @@ exports.verifyPassword = (req, res, next) => {
         });
 }
 
+/**
+ * It encrypts password which will be stored in database.
+ * @param {object} req
+ * Request object
+ * @param {object} res
+ * Response Object
+ * @param {object} next
+ * Function to call next request handler
+ */
 exports.encryptPassword = (req, res, next) => {
     var salt = bcrypt.genSaltSync(saltRounds);
     var hash = bcrypt.hashSync(req.body.password, salt);
@@ -46,6 +65,11 @@ exports.encryptPassword = (req, res, next) => {
     next();
 }
 
+/**
+ * It adds search filter before fetching data.
+ * @param {boolean} onlyUserType
+ * set true if only user type is to be set
+ */
 exports.searchFilterNeeded = (onlyUserType) => {
     return (req, res, next) => {
         var userType = (req.jwt.user.permission & (15 << 4))
@@ -92,6 +116,15 @@ exports.searchFilterNeeded = (onlyUserType) => {
     }
 }
 
+/**
+ * It checks required parameter is sent by user or not.
+ * @param {object} req
+ * Request object
+ * @param {object} res
+ * Response Object
+ * @param {object} next
+ * Function to call next request handler
+ */
 exports.checkSignUpParamter = (req, res, next) => {
     let msg = "";
     if(req.body) {
@@ -116,4 +149,33 @@ exports.checkSignUpParamter = (req, res, next) => {
     }
 
     res.status(403).send({error: msg}).end();
+}
+
+/**
+ * It add user type and user level in the req.body
+ * @param {string} type 
+ * User type
+ */
+function addUserTypeAndLevel(type) {
+    return ((req, res, next) => {
+        if(req.body) {
+            req.body["userType"] = type;
+            req.body["userLevel"] = UserConfig.user.level.FREE.toString();
+        }
+        next();
+    })
+}
+
+/**
+ * It add user type to customer
+ */
+exports.addCustomerUserType = () => {
+    return addUserTypeAndLevel(UserConfig.user.type.CUSTOMER.toString());
+}
+
+/**
+ * It add user type to seller
+ */
+exports.addSellerUserType = () => {
+    return addUserTypeAndLevel(UserConfig.user.type.SELLER.toString());
 }

@@ -77,7 +77,7 @@ exports.list = (where) => {
                 reject(ex);
                 return
             }
-            console.log("userModle list where: " + whereInArr);
+            // console.log("userModel list where: " + whereInArr);
 
             var query = session.sql(
                 "SELECT t1.id, name, contact, email, level, type, is_verified \
