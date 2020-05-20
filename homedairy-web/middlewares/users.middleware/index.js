@@ -16,25 +16,33 @@ const saltRounds = 10;
  */
 exports.verifyPassword = (req, res, next) => {
     // console.log("verifyPassword");
+    let user;
     UserModel.findByUserId(req.body.userid)
-        .then((user) => {
+        .then((users) => {
             // console.log("findByUserId => then " + JSON.stringify(user));
-            if(!user[0]) {
+
+            if(!users || !users[0]) {
                 res.status(400).send({ error: "User not found"});
             } else {
                 // Check password
-                var passwordFields = user[0].password.split("$");
+                user = users[0];
+                var passwordFields = user.password.split("$");
                 var hashed = Buffer.from(passwordFields[1], "base64").toString();
                 if ( bcrypt.compareSync(req.body.password, hashed) ) {
                     req.user = {
-                        id: user[0].id,
+                        id: user.userid,
                         permission: (
-                            parseInt(user[0].userType) 
-                            | parseInt(user[0].userLevel)
+                            parseInt(user.userType) 
+                            | parseInt(user.userLevel)
                         ),
-                        name: user[0].name
+                        name: user.name
                     }
-                    return next();
+                    // return next();
+                    UserModel.findDoc(req.body.userid, ["refresh_token"]).then((results) => {
+                        req.user.refresh_token = results.refresh_token;
+                        next();
+                    });
+                    return;
                 } else {
                     return res.status(400).send({error: "Invalid password"});
                 }
@@ -179,3 +187,37 @@ exports.addCustomerUserType = () => {
 exports.addSellerUserType = () => {
     return addUserTypeAndLevel(UserConfig.user.type.SELLER.toString());
 }
+
+/**
+ * It veirfy OTP from user
+ * @param {object} req
+ * Request object
+ * @param {object} res
+ * Response object
+ * @param {function} next
+ * Function to call next request handler
+ */
+exports.verifyOTP = (req, res, next) => {
+    // console.log("User: " + JSON.stringify(req.jwt));
+    // console.log("Body: " + JSON.stringify(req.body));
+    UserModel.findDoc(req.jwt.user.id, "otp")
+    .then((user) => {
+        // console.log("findByUserId => then " + JSON.stringify(user));
+        if(user[0]) {
+            // Check OTP
+            if(user[0].otp === req.body.otpassword) {
+                UserModel.save(req.jwt.user.id, {"otp" : "-"}).then(() => {});
+                next();
+            } else {
+                res.status(200).send({
+                    response: "FAIL",
+                    msg: "OTP is invalid"
+                }).end();
+            }
+        } else {
+            res.status(400).send({ error: "User not found"});
+        }
+    }).catch((err) => {
+        res.status(500).send(err).end();
+    });
+};

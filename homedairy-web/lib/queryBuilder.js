@@ -52,16 +52,17 @@ function operatorToString(obj) {
             throw new Error("Operator '"+ op +"' not found!!");
     }
 
+    // console.log("2.1 operatorToString: " + retStr);
     return retStr;
 }
 
 function conditionToString(col, values, alias, mapping, ele) {
     let condition = ele || [];
 
-    // console.log("condToString col: " + JSON.stringify(col));
-    // console.log("condToString values: " + JSON.stringify(values));
-    // console.log("condToString alias: " + JSON.stringify(alias));
-    // console.log("condToString ele: " + JSON.stringify(ele));
+    // console.log("1.0 condToString col: " + JSON.stringify(col));
+    // console.log("1.0 condToString values: " + JSON.stringify(values));
+    // console.log("1.0 condToString alias: " + JSON.stringify(alias));
+    // console.log("1.0 condToString ele: " + JSON.stringify(ele));
     switch(col) {
         case "and":
         case "or":
@@ -76,13 +77,13 @@ function conditionToString(col, values, alias, mapping, ele) {
                 condition[index] = item;
                 index += 2;
             }
-            // console.log("condToString len: " + condition.length);
+            // console.log("1.1 condToString len: " + condition.length);
             condition[index-1] = ")";
             break; 
         default:
             let expr;
             if(mapping[col] && (expr = operatorToString(values))) {
-                condition = alias + "." +mapping[col] + " " + expr;
+                condition = (alias ? (alias + ".") : "") + mapping[col] + " " + expr;
             }
     }
 
@@ -101,12 +102,19 @@ function whereToString(whereArr) {
 }
 
 exports.getWhereCondition = (conditions, alias, extend, mapping) => {
-    let where = extend || [];
+    let where;
     let index = 1;
 
+    if(typeof alias !== "string") {
+        extend = alias;
+        alias = undefined;
+    }
+
+    where = extend || [];
+    // console.log("0.0 Conditions: " + JSON.stringify(conditions, null, 4));
     for(let col in conditions) {
         let condition = conditionToString(col, conditions[col], alias, mapping, where[index]);
-        // console.log("1 condition: " + condition);
+        // console.log("3.0 condition: " + condition);
         if(index >= 3) {
             where[index-1] = "AND"
         }

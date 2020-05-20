@@ -7,6 +7,7 @@ var UserAction = require("../actions/users");
 /* POST Methods */
 /* User login and sign up */
 router.post("/dologin", AuthorizationAction.handler.login);
+router.post("/verifyUser", UserAction.handler.verify);
 router.post("/customer/signup", UserAction.handler.addCustomer);
 router.post("/seller/signup", UserAction.handler.addSeller);
 

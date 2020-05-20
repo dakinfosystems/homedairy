@@ -28,6 +28,22 @@ exports.hasVaild = {
         } else {
             return res.status(400).send({error: "UserId and Password are required"});
         }
+    },
+    verifyFields: (req, res, next) => {
+        if(req.body) {
+            let errors = [];
+
+            if(!req.body.otpassword) {
+                errors.push("OTP is required");
+            }
+            if(errors.length){
+                return res.status(400).send({error: errors.join(',')});
+            } else {
+                next();
+            }
+        } else {
+            return res.status(400).send({error: "OTP is required"});
+        }
     }
 }
 

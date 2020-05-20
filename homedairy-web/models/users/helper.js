@@ -24,6 +24,7 @@ function getUserTblDefaultValue(col) {
 }
 
 userTblMapping.fn = {
+    name: () => { return "User_Tbl"; },
     getDefaultValue: getUserTblDefaultValue
 }
 
@@ -57,7 +58,29 @@ function getUserSecretTblDefaultValue(col) {
 }
 
 userSecretTblMapping.fn = {
+    name: () => { return "User_Secret_Tbl"; },
     getDefaultValue: getUserSecretTblDefaultValue
+}
+
+exports.sortTablewise = (data) => {
+    let retVal = {}
+    for(col in data) {
+        if("userid" === col)
+            continue;
+        if(userTblMapping[col]) {
+            let tname = userTblMapping.fn.name();
+
+            retVal[tname] = retVal[tname] || {};
+            retVal[tname][userTblMapping[col]] = data[col];
+        } else if(userSecretTblMapping[col]) {
+            let tname = userSecretTblMapping.fn.name();
+
+            retVal[tname] = retVal[tname] || {};
+            retVal[tname][userSecretTblMapping[col]] = data[col];
+        }
+    }
+
+    return retVal;
 }
 
 exports.whereToString = (whereArr) => {

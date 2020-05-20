@@ -27,7 +27,9 @@ exports.findByUserId = (userid) => {
         // }, 5);
         var rows = [];
         var headers = [];
+        var connection;
         pool.getSession().then(session => {
+            connection = session;
             var query = session.sql(
                 "SELECT t1.id, name, level, type, contact, email, auth_string " 
                 + "FROM User_Tbl as t1 "
@@ -46,8 +48,9 @@ exports.findByUserId = (userid) => {
             var results = [];
 
             for(var index in rawresult) {
+                var result = HelperFn.userSecretTable.fromDBtoParam(rawresult[index]);
                 results.push(
-                    HelperFn.userSecretTable.fromDBtoParam(rawresult[index])
+                    HelperFn.usertable.fromDBtoParam(rawresult[index],result)
                 );
             }
 
@@ -56,6 +59,8 @@ exports.findByUserId = (userid) => {
         })
         .catch((err) => {
             reject(err);
+        }).finally(() => {
+            connection.close();
         });
     })
 }
@@ -65,24 +70,24 @@ exports.list = (where) => {
     return new Promise((resolve, reject) => {
         var headers = [];
         var data = [];
+        var connection;
 
         pool.getSession().then(session => {
-            //var query = userTable.select();
             var whereInArr;
+            connection = session;
             try {
-                whereInArr = HelperFn.usertable.constructWhere(where, "t1");
-                whereInArr = HelperFn.userSecretTable.constructWhere(where, "t2", whereInArr);
+                whereInArr = HelperFn.usertable.constructWhere(where);
+                whereInArr = HelperFn.userSecretTable.constructWhere(where, whereInArr);
             } catch(ex) {
-                console.error("HERE!! " + ex);
+                console.error("Error in constructing where clause! Here: " + ex);
                 reject(ex);
-                return
+                return;
             }
             // console.log("userModel list where: " + whereInArr);
 
             var query = session.sql(
-                "SELECT t1.id, name, contact, email, level, type, is_verified \
-                FROM User_Tbl as t1 \
-                JOIN User_Secret_Tbl as t2 ON t1.id = t2.id " + 
+                "SELECT * \
+                FROM User_Info_View " + 
                 HelperFn.whereToString(whereInArr))
 
             return query.execute(results => {
@@ -110,7 +115,9 @@ exports.list = (where) => {
             resolve(results);
         }).catch((err) => {
             reject(err);
-        })
+        }).finally(() => {
+            connection.close();
+        });
     })
 }
 
@@ -134,21 +141,21 @@ exports.add = (user) => {
         var userSecretTable;
         var userAuthCollection;
         var affectedRows = 0;
+        var connection;
 
         /* Send data to database */
         pool.getSession().then(session => {
             var [cols, values] = getTableInsert(user, HelperFn.usertable);
-            // console.log(cols + " == " + values);
             var userTable = session.getSchema(process.env.DB_NAME).getTable("User_Tbl");
-            
+
+            // console.log(cols + " == " + values);
+            connection = session;
             userSecretTable = session.getSchema(process.env.DB_NAME)
                 .getTable("User_Secret_Tbl");
             userAuthCollection = session.getSchema(process.env.DB_NAME)
                 .getCollection("User_Auth_Tbl");
 
-            var query = userTable.insert(cols).values(values);
-
-            return query.execute();
+            return userTable.insert(cols).values(values).execute();
         })
         .then((status) => {
             var [cols, values] = getTableInsert(user, HelperFn.userSecretTable);
@@ -163,8 +170,9 @@ exports.add = (user) => {
         .then((status) => {
             // console.log("2. Affected rows: " + status.getAffectedItemsCount());
             userAuthCollection.add({
-                "_id": user.id
-            });
+                "_id": user.id,
+                "refresh_token": ""
+            }).execute();
             affectedRows += status.getAffectedItemsCount()
             resolve({
                 "affectedRows": affectedRows
@@ -173,25 +181,101 @@ exports.add = (user) => {
         .catch((err) => {
             // console.error(err);
             reject(err);
+        }).finally(() => {
+            connection.close();
         });
     })
 }
 
-exports.saveToken = (id, token) => {
+/**
+ * It update table 
+ */
+exports.update = (where, data) => {
     return new Promise((resolve, reject) => {
+        /** Update table */
+        var connection;
+        pool.getSession().then(session => {
+            let sortedData = HelperFn.sortTablewise(data);
+
+            connection = session;
+            console.log("UserModel update sortedData: " + sortedData);
+        }).catch((err) => {
+            reject(err);
+        }).finally(() => {
+            connection.close();
+            resolve({
+                "affectedRows": 1
+            });
+        });
+    });
+}
+
+/**
+ * It save data in collection like refresg_token and otp
+ * @param {string} id
+ * user id
+ * @param {object} data
+ * data to be save in collection
+ */
+exports.save = (id, data) => {
+    return new Promise((resolve, reject) => {
+        var connection;
+        // console.log("id: " + id + "\nToken: " + token);
         pool.getSession().then(session => {
             var collection = session.getSchema(process.env.DB_NAME)
                 .getCollection("User_Auth_Tbl");
+            
+                connection = session;
 
             return collection.modify("_id = :userid")
             .bind("userid", id)
-            .set("refresh_token", token)
+            .patch(data)
             .execute();
-        })
-        .then((status) => {
+        }).then((status) => {
             resolve({
                 "affectedRows": status.getAffectedItemsCount()
-            })
-        })
+            });
+        }).catch((err) => {
+            reject(err);
+        }).finally(() => {
+            connection.close();
+        });
+    });
+};
+
+/**
+ * It finds data from collection
+ * @param {string} id
+ * User id
+ * @param {Array} fields
+ * fields or columns to be retrieved 
+ */
+exports.findDoc = (id, fields) => {
+    return new Promise((resolve, reject) => {
+        var connection
+        var retData = [];
+        pool.getSession().then((session) => {
+            var collection = session.getSchema("homedairy").getCollection("User_Auth_Tbl");
+            var find = collection.find("_id = :userid");
+
+            connection = session
+    
+            if(fields) {
+                find = find.fields(fields)
+            }
+
+            return find.bind("userid", id)
+            .execute((doc) => {
+                // console.log("find doc: " + JSON.stringify(doc))
+                retData.push(doc);
+                session.close();
+            });
+        }).then(() => {
+            resolve(retData);
+        }).catch((err) => {
+            reject(err);
+        }).finally(() => {
+            connection.close();
+        });
     })
 }

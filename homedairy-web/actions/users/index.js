@@ -1,23 +1,29 @@
 var AuthMiddleware = require("../../middlewares/auth.middleware");
-var Handlers = require("./handlers");
+var RequestHandler = require("./handlers");
 var UserMiddleware = require("../../middlewares/users.middleware");
 
 exports.handler = {
     getUser: [
         AuthMiddleware.validTokenNeeded,
         UserMiddleware.searchFilterNeeded(false),
-        Handlers.users.get
+        RequestHandler.users.get
     ],
     addCustomer: [
         UserMiddleware.addCustomerUserType(),
         UserMiddleware.checkSignUpParamter,
         UserMiddleware.encryptPassword,
-        Handlers.users.add
+        RequestHandler.users.add
     ],
     addSeller: [
         UserMiddleware.addSellerUserType(),
         UserMiddleware.checkSignUpParamter,
         UserMiddleware.encryptPassword,
-        Handlers.users.add
+        RequestHandler.users.add
+    ],
+    verify: [
+        AuthMiddleware.validTokenNeeded,
+        AuthMiddleware.hasVaild.verifyFields,
+        UserMiddleware.verifyOTP,
+        RequestHandler.users.verify
     ]
 }
