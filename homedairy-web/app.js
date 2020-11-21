@@ -9,6 +9,13 @@ var app = express();
 
 // Reader DB configuration
 dotenv.read("./db.env");
+
+// Set time zone
+process.env.TZ="Asia/Calcutta";
+//process.env.TZ="Australia/Sydney";
+let now = new Date();
+console.log("Current Date/Time: " + now);
+console.log("TimeZone: " + -(now.getTimezoneOffset()));
 // console.log(JSON.stringify(process.env, null, 4));
 
 // view engine setup

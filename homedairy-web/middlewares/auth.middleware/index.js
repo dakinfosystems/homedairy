@@ -1,6 +1,19 @@
 const { JWT, errors } = require('jose'),
     secret = require("../../configs/auth").auth.key,
     crypto = require('crypto');
+let UserModel = require("../../models/users");
+
+function getTokenFromHeader(req) {
+    let token;
+    if (req.headers['authorization']) {
+        let authorization = req.headers['authorization'].split(' ');
+        if (authorization[0] == 'Bearer') {
+            token = authorization[1];
+        }
+    }
+
+    return token;
+}
 
 exports.hasVaild = {
     refreshBodyField: (req, res, next) => {
@@ -48,44 +61,60 @@ exports.hasVaild = {
 }
 
 exports.validateRefreshToken = (req, res, next) => {
-    let b = new Buffer(req.body.refresh_token, 'base64');
-    let refresh_token = b.toString();
-    let hash = crypto.createHmac('sha512', req.jwt.refreshKey).update(req.jwt.userId + secret).digest("base64");
-    if (hash === refresh_token) {
-        req.body = req.jwt;
-        return next();
+    let token = getTokenFromHeader(req);
+
+    if(!token) {
+        return res.status(401).send({ 
+            error: "Missing/Incorrect bearer in request header"
+        });
     } else {
-        return res.status(400).send({error: 'Invalid refresh token'});
+        let thistoken = Buffer.from(token, "base64").toString();
+
+        let payload = JWT.decode(thistoken);
+        if (payload && payload.user && payload.user.id) {
+            UserModel.findDoc(payload.user.id, ["refresh_token"]).then((result) => {
+                let refresh_token = result.refresh_token;
+                // onsole.log("From db: " + refresh_token);
+                // console.log("From body: " + req.body.refresh_token);
+                if(refresh_token === req.body.refresh_token) {
+                    req.user = {
+                        id: payload.user.id,
+                        permission: payload.user.permission,
+                        name: payload.sub
+                    };
+                    return next();
+                } else {
+                    return res.status(400).send({error: 'Invalid refresh token'});
+                }
+            });
+        } else {
+            return res.status(400).send({error: 'Invalid access token'});
+        }
     }
 };
 
 
 exports.validTokenNeeded = (req, res, next) => {
-    if (req.headers['authorization']) {
-        try {
-            let authorization = req.headers['authorization'].split(' ');
-            if (authorization[0] !== 'Bearer') {
-                return res.status(401).send();
-            } else {
-                var token = Buffer.from(authorization[1], "base64").toString();
-                // console.log("Token: " + token);
-                req.jwt = JWT.verify(token, secret);
-                // console.log("validTokenNeeded => jwt: " + JSON.stringify(req.jwt));
-                return next();
-            }
-
-        } catch (err) {
-            var errmsg = "Error while authorising. code: " + err.code;
-            // console.log(err);
-            if(err instanceof errors.JOSEError 
-                && err.code === "ERR_JWT_EXPIRED") {
-                errmsg = "Access token has been expired";
-            }
-            return res.status(403).send({error: errmsg});
+    try {
+        let token = getTokenFromHeader(req);
+        if (!token) {
+            return res.status(401).send({ 
+                error: "Missing/Incorrect bearer in request header"
+            });
+        } else {
+            token = Buffer.from(token, "base64").toString();
+            // console.log("Token: " + token);
+            req.jwt = JWT.verify(token, secret);
+            // console.log("validTokenNeeded => jwt: " + JSON.stringify(req.jwt));
+            return next();
         }
-    } else {
-        return res.status(401).send({ 
-            error: "Missing bearer in request header"
-        });
+    } catch (err) {
+        var errmsg = "Error while authorising. code: " + err.code;
+        // console.log(err);
+        if(err instanceof errors.JOSEError 
+            && err.code === "ERR_JWT_EXPIRED") {
+            errmsg = "Access token has been expired";
+        }
+        return res.status(403).send({error: errmsg});
     }
 };

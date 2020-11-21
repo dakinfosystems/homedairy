@@ -1,4 +1,5 @@
 var HelperFn = require("./helper");
+var CommonHepler = require("../../lib/common.helper");
 var pool = require("../../lib/mysql").pool;
 
 
@@ -58,9 +59,11 @@ exports.findByUserId = (userid) => {
             resolve(results);
         })
         .catch((err) => {
+            console.error(err);
             reject(err);
         }).finally(() => {
-            connection.close();
+            if(connection)
+                connection.close();
         });
     })
 }
@@ -121,19 +124,19 @@ exports.list = (where) => {
     })
 }
 
-function getTableInsert(user, table) {
-    let cols = [];
-    let values = [];
+// function getTableInsert(user, table) {
+//     let cols = [];
+//     let values = [];
     
-    let dbuser = table.fromParamtoDB(user);
-    // console.log(dbuser);
+//     let dbuser = table.fromParamtoDB(user);
+//     // console.log(dbuser);
 
-    cols = Object.keys(dbuser);
-    values = Object.values(dbuser);
+//     cols = Object.keys(dbuser);
+//     values = Object.values(dbuser);
 
-    return [cols, values];
+//     return [cols, values];
 
-}
+// }
 exports.add = (user) => {
     // console.log(JSON.stringify(user));
 
@@ -145,7 +148,7 @@ exports.add = (user) => {
 
         /* Send data to database */
         pool.getSession().then(session => {
-            var [cols, values] = getTableInsert(user, HelperFn.usertable);
+            var [cols, values] = CommonHepler.getTableInsert(user, HelperFn.usertable);
             var userTable = session.getSchema(process.env.DB_NAME).getTable("User_Tbl");
 
             // console.log(cols + " == " + values);
@@ -158,7 +161,7 @@ exports.add = (user) => {
             return userTable.insert(cols).values(values).execute();
         })
         .then((status) => {
-            var [cols, values] = getTableInsert(user, HelperFn.userSecretTable);
+            var [cols, values] = CommonHepler.getTableInsert(user, HelperFn.userSecretTable);
             // console.log(cols + " == " + values);
             // console.log("1. Affected rows: " + status.getAffectedItemsCount());
             affectedRows += status.getAffectedItemsCount();
@@ -170,7 +173,7 @@ exports.add = (user) => {
         .then((status) => {
             // console.log("2. Affected rows: " + status.getAffectedItemsCount());
             userAuthCollection.add({
-                "_id": user.id,
+                "_id": user.userid,
                 "refresh_token": ""
             }).execute();
             affectedRows += status.getAffectedItemsCount()
@@ -266,12 +269,18 @@ exports.findDoc = (id, fields) => {
 
             return find.bind("userid", id)
             .execute((doc) => {
-                // console.log("find doc: " + JSON.stringify(doc))
+                // console.log("find doc: " + JSON.stringify(doc));
                 retData.push(doc);
-                session.close();
             });
         }).then(() => {
-            resolve(retData);
+            // console.log("find retData " + JSON.stringify(retData));
+            if(0 < retData.length) {
+                resolve(retData[0]);
+            } else {
+                resolve({
+                    "refresh_token": ""
+                });
+            }
         }).catch((err) => {
             reject(err);
         }).finally(() => {

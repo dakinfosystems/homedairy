@@ -1,12 +1,14 @@
 const { JWT } = require('jose')
 const { auth } = require("../../configs/auth");
-var bcrypt = require("bcrypt");
 
 exports.login = (req, res) => {
-    var salt = bcrypt.genSaltSync(10);
-    var refresh_token = Buffer.from(
-        bcrypt.hashSync(req.user.id + auth.key, salt)
-    ).toString("base64");
+    var refresh_token;
+
+    if(req.body.refresh_token) {
+        refresh_token = req.body.refresh_token;
+    } else {
+        refresh_token = req.user.refresh_token;
+    }
 
     // console.log(JSON.stringify(results));
     var payload = {};

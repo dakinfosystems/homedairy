@@ -6,7 +6,8 @@ var userTblMapping = {
     "name": "name",
     "mobile": "contact",
     "email": "email",
-    "houseNo": "flat_no"
+    "houseNo": "flat_no",
+    "qrCode": "qr_code"
 };
 
 function getUserTblDefaultValue(col) {

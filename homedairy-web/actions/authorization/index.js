@@ -7,5 +7,10 @@ exports.handler = {
         AuthMiddleware.hasVaild.loginFields,
         UserMiddleware.verifyPassword,
         RequestHandler.login
+    ],
+    refreshToken: [
+        AuthMiddleware.hasVaild.refreshBodyField,
+        AuthMiddleware.validateRefreshToken,
+        RequestHandler.login
     ]
 }

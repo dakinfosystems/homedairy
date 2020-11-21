@@ -47,6 +47,11 @@ exports.verifyPassword = (req, res, next) => {
                     return res.status(400).send({error: "Invalid password"});
                 }
             }
+        })
+        .catch((err) => {
+            // console.log("Here " + JSON.stringify(req.body));
+            //return res.status(400).send({});
+            return res.status(400).send({error: "Unknown error occurred"});
         });
 }
 

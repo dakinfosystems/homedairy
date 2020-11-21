@@ -1,4 +1,5 @@
 let nodemon = require("gulp-nodemon")
+let path = require("path")
 /**
  * 
  * @param {*} opts
@@ -18,6 +19,22 @@ function startNodemon(opts) {
             "session/**"
         ],
         "tasks": opts["tasks"],
+        // "tasks": function (changedFiles) {
+        //     var tasks = []
+        //     if (!changedFiles && !changedFiles.forEach && typeof changedFiles.forEach === "function") 
+        //       return tasks;
+
+        //     changedFiles.forEach(function (file) {
+        //       if ( tasks.length === 0
+        //         && (path.extname(file) === '.sass'
+        //         || path.extname(file) === '.scss'
+        //       )) {
+        //         tasks = opts["tasks"];
+        //       }
+        //     })
+
+        //     return tasks
+        //   },
         env: { 
             'NODE_ENV': 'development',
             "PORT": "3031"
