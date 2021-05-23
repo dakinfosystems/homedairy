@@ -93,7 +93,25 @@ exports.validateRefreshToken = (req, res, next) => {
     }
 };
 
-
+/**
+ * {
+ *   "sub":"User name",
+ *   "user": {
+ *     "id":"user_id",
+ *     "permission":number,
+ *     "refresh_token":"token"
+ *   },
+ *   "aud":"audience",
+ *   "iss":"",
+ *   "iat":,
+ *   "exp":expire epoch
+ * }
+ * 
+ * @param {object} req express request
+ * @param {object} res express response
+ * @param {fucntion} next express next function
+ * @returns None but it sends error msg to callee
+ */
 exports.validTokenNeeded = (req, res, next) => {
     try {
         let token = getTokenFromHeader(req);

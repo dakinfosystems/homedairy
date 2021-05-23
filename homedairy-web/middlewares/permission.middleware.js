@@ -36,7 +36,6 @@ exports.onlyUserTypeRequired = (required_user_type) => {
         let user_type = (parseInt(req.jwt.user.permission));
 
         // console.log(user_type + " & " + required_user_type + " = " + (user_type & required_user_type));
-
         if ((user_type & required_user_type)) {
             return next();
         } else {
