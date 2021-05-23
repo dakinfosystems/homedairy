@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "gulp dev",
-    "start": "node bin/www"
+    "start": "node --trace-warnings bin/www"
   },
   "dependencies": {
     "cookie-parser": "~1.4.3",
