@@ -12,3 +12,7 @@ exports.genRandomString = (length, chars) => {
     }
     return result;
 }
+
+exports.getMilliCount= () => {
+    return "";
+}

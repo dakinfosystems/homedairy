@@ -168,7 +168,7 @@ function getUnit(time, match) {
             break;
         case 'd':
         case 'dd':
-            reDate += getDay(time, match);
+            retDate += getDay(time, match);
             break;
         default:
             break;
@@ -218,7 +218,23 @@ module.exports = {
         let now = new Date();
         return formatfn(now, format);
     },
+    mysqlNow: function () {
+        let format = "YYYY-MM-DD hh:mm:SS";
+        let now = new Date();
+        return formatfn(now, format) + "";
+    },
     toFormat: function (time, format) {
         return formatfn(time, format);
+    },
+    /**
+     * This function is to get epoch
+     */
+    getEpochStr: function() {
+        let returnVal;
+        let now = Date.now();
+        /* TODO: Future implenetation should not go beyond 16 digit */
+        returnVal = now;
+        // console.log("native date getEpochStr: epoch = " +now+ " to " +returnVal);
+        return (returnVal);
     }
 }
