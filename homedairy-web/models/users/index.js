@@ -201,7 +201,7 @@ exports.update = (where, data) => {
             let sortedData = HelperFn.sortTablewise(data);
 
             connection = session;
-            console.log("UserModel update sortedData: " + sortedData);
+            // console.log("UserModel update sortedData: " + sortedData);
         }).catch((err) => {
             reject(err);
         }).finally(() => {

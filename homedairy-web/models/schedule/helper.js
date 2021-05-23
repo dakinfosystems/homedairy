@@ -9,7 +9,18 @@ var scheduleProcedure = {
     "productQuantity": "product_quantity"
 };
 
+var schedule_tbl = {
+    "id": "id",
+    "customerId": "cust_id",
+    "sellerId": "seller_id",
+    "productId": "product_id",
+    "interval": "interval",
+    "fixday": "fixday",
+    "quantity": "quantity"
+}
+
 var scheduleEntryProcedure = {
+    "scheduleId": "schedule_id",
     "sellerId": "seller_id",
     "sellerName": "seller_name",
     "productId": "product_id",
@@ -18,32 +29,40 @@ var scheduleEntryProcedure = {
     "occurrence": "occurrence",
 }
 
-function getScheduleDefaultValue() {
+function getScheduleDefaultValue(col) {
     let value = "";
 
-    console.log(col)
+    // console.log(col)
     switch (col) {
         case "name":
             break;
         default:
             break;
     }
+    return value;
 }
 
-function getScheduleEntryDefaultValue() {
+function getScheduleEntryDefaultValue(col) {
     let value = "";
 
-    console.log(col)
+    // console.log(col)
     switch (col) {
         case "name":
             break;
         default:
             break;
     }
+    return value;
+}
+
+function getScheduleTblDefaultvalue(col) {
+    let value = "";
+
+    return value;
 }
 
 scheduleProcedure.fn = {
-    name: () => { return ""; },
+    name: () => { return "getCustomerEntry"; },
     getDefaultValue: getScheduleDefaultValue
 }
 
@@ -52,11 +71,30 @@ scheduleEntryProcedure.fn = {
     getDefaultValue: getScheduleEntryDefaultValue
 }
 
+schedule_tbl.fn = {
+    name: () => { return "Schedule_Tbl"; },
+    getDefaultValue: getScheduleTblDefaultvalue
+}
+
 exports.whereToString = (whereArr) => {
     return QueryBuilder.whereToString(whereArr);
 }
 
 exports.scheduleTable = {
+    fromDBtoParam : (dbRow, extend) => {
+        return QueryBuilder.fromDBtoParam(dbRow, extend, schedule_tbl);
+    },
+
+    fromParamtoDB: (paramRow, extend) => {
+        return QueryBuilder.fromParamtoDB(paramRow, extend, schedule_tbl);
+    },
+
+    constructWhere(conditions, alias, extend) {
+        return QueryBuilder.getWhereCondition(conditions, alias, extend, schedule_tbl);
+    }
+};
+
+exports.scheduleProcedure = {
     fromDBtoParam : (dbRow, extend) => {
         return QueryBuilder.fromDBtoParam(dbRow, extend, scheduleProcedure);
     },
@@ -72,14 +110,14 @@ exports.scheduleTable = {
 
 exports.scheduleEntry = {
     fromDBtoParam : (dbRow, extend) => {
-        return QueryBuilder.fromDBtoParam(dbRow, extend, scheduleProcedure);
+        return QueryBuilder.fromDBtoParam(dbRow, extend, scheduleEntryProcedure);
     },
 
     fromParamtoDB: (paramRow, extend) => {
-        return QueryBuilder.fromParamtoDB(paramRow, extend, scheduleProcedure);
+        return QueryBuilder.fromParamtoDB(paramRow, extend, scheduleEntryProcedure);
     },
 
     constructWhere(conditions, alias, extend) {
-        return QueryBuilder.getWhereCondition(conditions, alias, extend, scheduleProcedure);
+        return QueryBuilder.getWhereCondition(conditions, alias, extend, scheduleEntryProcedure);
     }
 };
