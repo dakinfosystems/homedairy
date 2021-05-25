@@ -5,35 +5,45 @@ let DateUtil = require("../../lib/native/date")
 
 let globalValue = 0;
 
-exports.list = (id, pageNo) => {
+
+/**
+ * This functions is to get all unpaid entries enteries of passbook.
+ * 
+ * @param {string} id customer id
+ * @param {number} pageNo page number of entier which user wants
+ * @returns Promise object
+ */
+ exports.getPaidEntries = (id, pageNo) => {
     // console.log("UserModel list: " + JSON.stringify(where));
     return new Promise((resolve, reject) => {
         let headers = [];
-        let data = [];
+        let paidEntries = [];
         let connection;
 
         pool.getSession().then(session => {
             let limit = 10;
+            let conditions = "";            
+            let table = session.getSchema(process.env.DB_NAME).getTable("PaidTransaction_View");
+            
             connection = session;
-            // console.log("userModel list where: " + whereInArr);
-            let table = session.getSchema(process.env.DB_NAME).gettable("Transaction_Tbl");
-
             pageNo = pageNo * limit;
-            table = table.find("_id=:userid").bind("userid", id).offset(pageNo).limit(limit);
 
-            return table.execute(results => {
-                // console.log("User Secret data: " + JSON.stringify(data, null, 4));
-                console.log("Passbook query: " + JSON.stringify(results, null, 4));
-                data.push(results);
+            conditions = "`cust_id` == \"" +id+ "\"";
+            table = table.select().where(conditions).offset(pageNo).limit(limit);
+
+            // console.log("Passbook getPaidEntries: ");
+            return table.execute(row => {
+                // console.log("Passbook getPaidEntries: " + JSON.stringify(results, null, 4));
+                paidEntries.push(row);
             }, meta => {
                 headers = meta;
             });
         }).then(() => {
-            /** process data */
-            let rawresult = CommonHepler.constructResults(headers, data);
+            /** process unpaidEntries */
+            let rawresults = CommonHepler.constructResults(headers, paidEntries);
             let results = [];
-            for(let index in rawresult) {
-                let result = HelperFn.transactionTable.fromDBtoParam(rawresult[index]);
+            for(let index in rawresults) {
+                let result = HelperFn.transactionTable.fromDBtoParam(rawresults[index]);
                 results.push(
                     result
                 );
@@ -41,6 +51,102 @@ exports.list = (id, pageNo) => {
 
             resolve(results);
         }).catch((err) => {
+            console.error("Passbook getPaidEntries catch: " +JSON.stringify(err));
+            reject(err);
+        }).finally(() => {
+            connection.close();
+        });
+    })
+}
+
+/**
+ * This functions is to get all unpaid entries enteries of passbook.
+ * 
+ * @param {string} id customer id
+ * @param {number} pageNo page number of entier which user wants
+ * @returns Promise object
+ */
+ exports.getUnpaidCountOf = (id) => {
+    // console.log("UserModel list: " + JSON.stringify(where));
+    return new Promise((resolve, reject) => {
+        let unpaidEntriesCount = [];
+        let connection;
+
+        pool.getSession().then(session => {
+            let conditions = "";            
+            let table = session.getSchema(process.env.DB_NAME).getTable("Transaction_Tbl");
+            
+            connection = session;
+
+            conditions = "`cust_id` == \"" +id+ "\"";
+            table = table.select('count(id)').where(conditions)
+
+            // console.log("Passbook getUnpaidEntries: ");
+            return table.execute(row => {
+                // console.log("Passbook getUnpaidEntries: " + JSON.stringify(row, null, 4));
+                unpaidEntriesCount.push(row[0]);
+            });
+        }).then(() => {
+            /** process unpaidEntries */
+            // console.log("getUnpaidCountOf count: " +unpaidEntriesCount[0]);
+            resolve({
+                count: unpaidEntriesCount[0]
+            });
+        }).catch((err) => {
+            console.error("Passbook getUnpaidEntries catch: " +JSON.stringify(err));
+            reject(err);
+        }).finally(() => {
+            connection.close();
+        });
+    })
+}
+
+/**
+ * This functions is to get all unpaid entries enteries of passbook.
+ * 
+ * @param {string} id customer id
+ * @param {number} pageNo page number of entier which user wants
+ * @returns Promise object
+ */
+exports.getUnpaidEntries = (id, pageNo) => {
+    // console.log("UserModel list: " + JSON.stringify(where));
+    return new Promise((resolve, reject) => {
+        let headers = [];
+        let unpaidEntries = [];
+        let connection;
+
+        pool.getSession().then(session => {
+            let limit = 10;
+            let conditions = "";            
+            let table = session.getSchema(process.env.DB_NAME).getTable("Transaction_Tbl");
+            
+            connection = session;
+            pageNo = pageNo * limit;
+
+            conditions = "`cust_id` == \"" +id+ "\"";
+            table = table.select().where(conditions).offset(pageNo).limit(limit);
+
+            // console.log("Passbook getUnpaidEntries: ");
+            return table.execute(row => {
+                // console.log("Passbook getUnpaidEntries: " + JSON.stringify(results, null, 4));
+                unpaidEntries.push(row);
+            }, meta => {
+                headers = meta;
+            });
+        }).then(() => {
+            /** process unpaidEntries */
+            let rawresults = CommonHepler.constructResults(headers, unpaidEntries);
+            let results = [];
+            for(let index in rawresults) {
+                let result = HelperFn.transactionTable.fromDBtoParam(rawresults[index]);
+                results.push(
+                    result
+                );
+            }
+
+            resolve(results);
+        }).catch((err) => {
+            console.error("Passbook getUnpaidEntries catch: " +JSON.stringify(err));
             reject(err);
         }).finally(() => {
             connection.close();
