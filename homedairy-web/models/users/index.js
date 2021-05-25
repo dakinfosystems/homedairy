@@ -124,19 +124,6 @@ exports.list = (where) => {
     })
 }
 
-// function getTableInsert(user, table) {
-//     let cols = [];
-//     let values = [];
-    
-//     let dbuser = table.fromParamtoDB(user);
-//     // console.log(dbuser);
-
-//     cols = Object.keys(dbuser);
-//     values = Object.values(dbuser);
-
-//     return [cols, values];
-
-// }
 exports.add = (user) => {
     // console.log(JSON.stringify(user));
 
