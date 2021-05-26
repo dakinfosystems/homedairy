@@ -5,6 +5,72 @@ const { emit } = require("gulp");
 
 
 /**
+ * 
+ * @param {*} req 
+ * @param {*} res 
+ * @param {*} next 
+ */
+function getUnpaidTransaction(req, res) {
+    let page = 1;
+
+    if(req.query && req.query._page) {
+        page = req.query._page;
+        countFlag = false;
+    }
+
+    if(page > 0) {
+        page = page - 1;
+    }
+    // Start from here
+    PassbookModel.getUnpaidEntries(req.jwt.user.id, page).then((result) => {
+        res.status(200).send({
+            "response": "SUCCESS",
+            "entries": result
+        }).end();
+    })
+    .catch((err) => {
+        console.error("getUnpaidTransaction error: " + JSON.stringify(err));
+        res.status(500).send({
+            "response": "FAILURE",
+            "msg": "Some error has occurred while retrieving."
+        }).end();
+    });
+}
+
+/**
+ * 
+ * @param {*} req 
+ * @param {*} res 
+ * @param {*} next 
+ */
+ function getPaidTransaction(req, res) {
+    let page = 1;
+
+    if(req.query && req.query._page) {
+        page = req.query._page;
+        countFlag = false;
+    }
+
+    if(page > 0) {
+        page = page - 1;
+    }
+    // Start from here
+    PassbookModel.getPaidEntries(req.jwt.user.id, page).then((result) => {
+        res.status(200).send({
+            "response": "SUCCESS",
+            "entries": result
+        }).end();
+    })
+    .catch((err) => {
+        console.error("getPaidTransaction error: " + JSON.stringify(err));
+        res.status(500).send({
+            "response": "FAILURE",
+            "msg": "Some error has occurred while retrieving."
+        }).end();
+    });
+}
+
+/**
  * This function is final function to be called in the chain of schedule it 
  * request.
  * 
@@ -90,37 +156,33 @@ exports.fetchSchedule = (req, res, next) => {
 }
 
 exports.fetchPassbook = (req, res, next) => {
-    let page = 1;
     let unpaidEntries = [];
-    let countFlag = true;
 
     if(req.query && req.query._page) {
-        page = req.query._page;
-        countFlag = false;
-    }
-
-    if(page > 0) {
-        page = page - 1;
-    }
-
-    PassbookModel.getUnpaidEntries(req.jwt.user.id, page).then((result) => {
-        if(countFlag) {
-            unpaidEntries = [].concat(result);
-            PassbookModel.getUnpaidCountOf(req.jwt.user.id).then((unpaidEntry) => {
-                // console.log("fetchPassbook count:" +typeof unpaidCount);
-                // console.log("fetchPassbook result:" +JSON.stringify(result));
-                res.status(200).send({
-                    "response": "SUCCESS",
-                    "thisMonthCount": unpaidEntry.count,
-                    "entries": unpaidEntries
-                }).end();
-            });
+        if (req.params && req.params.type && "unpaid" == req.params.type) {
+            getUnpaidTransaction(req, res);
+        } else if(req.params && req.params.type && "paid" === req.params.type) {
+            getPaidTransaction(req, res);
         } else {
-            res.status(200).send({
-                "response": "SUCCESS",
-                "entries": result
+            res.status(403).send({
+                "response": "FAILURE",
+                "msg": "Missing type of transaction"
             }).end();
         }
+        return;
+    }
+
+    PassbookModel.getUnpaidEntries(req.jwt.user.id, 0).then((result) => {
+        unpaidEntries = [].concat(result);
+        PassbookModel.getUnpaidCountOf(req.jwt.user.id).then((unpaidEntry) => {
+            // console.log("fetchPassbook count:" +typeof unpaidCount);
+            // console.log("fetchPassbook result:" +JSON.stringify(result));
+            res.status(200).send({
+                "response": "SUCCESS",
+                "thisMonthCount": unpaidEntry.count,
+                "entries": unpaidEntries
+            }).end();
+        });
     })
     .catch((err) => {
         console.error("fetchPassbook error: " + JSON.stringify(err));

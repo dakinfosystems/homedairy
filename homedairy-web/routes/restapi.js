@@ -40,6 +40,8 @@ router.get("/get/users/:userid", UserAction.handler.getUser);
 router.get("/get/schedules", CustomerAction.handler.fetchSchedules);
 /* let user fetch their passbook of enteries */
 router.get("/get/passbook", CustomerAction.handler.fetchPassbook);
+/* let user fetch their passbook of enteries */
+router.get("/get/passbook/:type", CustomerAction.handler.fetchPassbook);
 /* let user get it todays entried by scanning QR */
 router.get("/scan/:qrCode", CustomerAction.handler.scanQR);
 

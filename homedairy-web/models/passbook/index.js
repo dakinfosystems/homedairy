@@ -7,7 +7,7 @@ let globalValue = 0;
 
 
 /**
- * This functions is to get all unpaid entries enteries of passbook.
+ * This functions is to get all paid entries enteries of passbook.
  * 
  * @param {string} id customer id
  * @param {number} pageNo page number of entier which user wants
