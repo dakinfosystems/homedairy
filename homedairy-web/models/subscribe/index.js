@@ -21,7 +21,7 @@ exports.add = (params) => {
                 "affectedRows": affectedRows
             });
         }).catch((err) => {
-            // console.error(err);
+            console.error("SubscribeModel add catch: " +JSON.stringify(err));
             reject(err);
         }).finally(() => {
             connection.close();
@@ -48,8 +48,8 @@ exports.search = (jsonWhere) => {
 
             var query = session.sql(
                 "SELECT * \
-                FROM Subs_Tbl " + 
-                where);
+                FROM " +Helper.subsTable.getTableName()+ " " 
+                +where );
 
             return query.execute(results => {
                 // console.log("User Secret data: " + JSON.stringify(data, null, 4));
@@ -59,16 +59,57 @@ exports.search = (jsonWhere) => {
                 headers = meta;
             });
         }).then(() => {
-            let found = data.length? true: false;
+            let rawResults = CommonHelper.constructResults(headers, data);
+            let results = [];
 
+            for(let index in rawResults) {
+                let row = Helper.subsTable.fromDBtoParam(rawResults[index]);
+
+                results.push(row);
+            }
             resolve({
-                "isSubscribed": found
+                "subscriptions": results
             });
         }).catch((err) => {
             // console.error(err);
             reject(err);
         }).finally(() => {
             connection.close();
+        });
+    });
+}
+
+exports.remove = (conditions) => {
+    return new Promise((resolve, reject) => {
+        let connection;
+
+        pool.getSession().then((session) => {
+            let where = "";
+            let table;
+
+            connection = session;
+            
+            try {
+                let conditionArr = Helper.subsTable.constructWhere(conditions, true);
+                where = Helper.whereToString(conditionArr);
+            } catch (err) {
+                reject(err);
+                return;
+            }
+            // console.log("Subscribe remove query: " +where);
+            table = session.getSchema(process.env.DB_NAME).getTable(Helper.subsTable.getTableName());
+
+            return table.delete().where(where).execute();
+        }).then((status) => {
+            // Check: why there is not output
+            // console.log("Subscibe remove result: " +JSON.stringify(status.getAffectedItemsCount));
+            resolve({
+                "affectedRows": 1
+            });
+        })
+        .catch((err) => {
+            // console.error("Subscribe remove catch: " +JSON.stringify(err));
+            reject(err);
         });
     });
 }

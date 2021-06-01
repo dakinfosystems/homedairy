@@ -1,4 +1,4 @@
-SubscribeModel = require("../../models/subscribe");
+let SubscribeModel = require("../../models/subscribe");
 
 exports.subscribe = (req, res, next) => {
     let param = {
@@ -22,6 +22,32 @@ exports.subscribe = (req, res, next) => {
             response: "FAILURE",
             msg: details === "" ? "Error while subscribing!" : details,
             code: error.code
+        }).end();
+    });
+}
+
+exports.unsubscribe = (req, res, next) => {
+    let conditions = {
+        "custId": {
+            "eq": req.jwt.user.id
+        },
+        "sellerId": {
+            "eq": req.body.sellerId
+        }
+    };
+
+    SubscribeModel.remove(conditions).then((status) => {
+        // console.log("Subcribe remove status: " +JSON.stringify(status));
+        res.status(200).send({
+            "response": "SUCCESS",
+            "numOfDeletedRecord": status.affectedRows
+        }).end();
+    })
+    .catch((err) => {
+        console.error("Subscribe remove error: " +JSON.stringify(err));
+        res.status(500).send({
+            "response": "FAILURE",
+            "msg": err
         }).end();
     });
 }

@@ -37,7 +37,21 @@ exports.subsTable = {
         return QueryBuilder.fromParamtoDB(paramRow, extend, subsTblMapping);
     },
 
-    constructWhere(conditions, alias, extend) {
+    constructWhere(conditions, alias, extend, forFn) {
+        if(extend && "boolean" === typeof extend) {
+            forFn = true;
+            extend = undefined;
+        } else if (alias && "boolean" === typeof alias) {
+            forFn = alias;
+            alias = undefined;
+        }
+        if(forFn) {
+            return QueryBuilder.getWhereFnCondition(conditions, alias, extend, subsTblMapping);
+        }
         return QueryBuilder.getWhereCondition(conditions, alias, extend, subsTblMapping);
+    },
+
+    getTableName: () => {
+        return subsTblMapping.fn.name();
     }
 };
