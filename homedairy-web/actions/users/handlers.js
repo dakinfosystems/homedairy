@@ -134,9 +134,9 @@ exports.users = {
                     }).end();
             }
             SubscribeModel.search(where).then((result) => {
-                users[0]["isSubscribed"] = result.isSubscribed;
+                users[0]["isSubscribed"] = (result.subscriptions.length) ? true: false;
 
-                // console.log("Subscribed: " + JSON.stringify(result));
+                // console.log("Subscriptions: " + JSON.stringify(result));
                 return res.status(200)
                     .send({
                         response: "SUCCESS",

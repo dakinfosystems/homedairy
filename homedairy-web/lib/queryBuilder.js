@@ -2,6 +2,7 @@
  * Query Builder - to build query in array format
  *  
  */
+let forFnFlag = false;
 function operatorToString(obj) {
     let op = ""
     let retStr = "";
@@ -12,7 +13,7 @@ function operatorToString(obj) {
 
     switch(op) {
         case "eq":
-            retStr = "= '" + obj["eq"] + "'";
+            retStr = (forFnFlag? "== '": "= '") + obj["eq"] + "'";
             break;
         case "gt":
             retStr = "> '" + obj["gt"] + "'";
@@ -30,23 +31,28 @@ function operatorToString(obj) {
             retStr = "<> '" + obj["neq"] + "'";
             break;
         case "is":
-            retStr = "IS '" + obj["is"] + "'";
+            retStr = (forFnFlag? "is '" : "IS '") + obj["is"] + "'";
             break;
         case "isnot":
-            retStr = "IS NOT '" + obj["isnot"] + "'";
+            retStr = (forFnFlag? "is not '" : "IS NOT '") + obj["isnot"] + "'";
             break;
         case "like":
-            retStr = "LIKE '" + obj["like"] + "'";
-            break
+            retStr = (forFnFlag?  "like '":"LIKE '") + obj["like"] + "'";
+            break;
         case "notin":
-            retStr = "NOT ";
+            retStr = (forFnFlag? "not in": "NOT IN") + obj["notin"].join(", ") + ")";
+            break;
         case "in":
-            retStr += "IN (" + obj["in"].join(", ") + ")";
+            retStr = (forFnFlag? "in (": "IN (") + obj["in"].join(", ") + ")";
             break;
         case "notbetween":
-            retStr = "NOT ";
+            retStr = (forFnFlag? "not ": "NOT ");
+            retStr += (forFnFlag? "between ":"BETWEEN ") + obj["notbetween"]["low"] 
+                + (forFnFlag? " and " : " AND ") + obj["notbetween"]["high"];
+            break;
         case "between":
-            retStr += "BETWEEN " + obj["between"]["low"] + " AND " + obj["between"]["high"];
+            retStr = (forFnFlag? "between ":"BETWEEN ") + obj["between"]["low"] 
+                + (forFnFlag? " and " : " AND ") + obj["between"]["high"];
             break;
         default:
             throw new Error("Operator '"+ op +"' not found!!");
@@ -71,7 +77,7 @@ function conditionToString(col, values, alias, mapping, ele) {
             for(let name in values) {
                 var item = conditionToString(name, values[name], alias, mapping, condition[index]);
                 if(index >= 3) {
-                    condition[index-1] = col.toUpperCase();
+                    condition[index-1] = (forFnFlag? col : col.toUpperCase());
                 }
 
                 condition[index] = item;
@@ -90,18 +96,7 @@ function conditionToString(col, values, alias, mapping, ele) {
     return condition;
 }
 
-function whereToString(whereArr) {
-    for(let index in whereArr) {
-        if(Array.isArray(whereArr[index])) {
-            whereArr[index] = whereToString(whereArr[index]);
-        }
-    }
-
-    // console.log("whereToString : " + whereArr.join(" "));
-    return whereArr.join(" ");
-}
-
-exports.getWhereCondition = (conditions, alias, extend, mapping) => {
+function exportGetWhereCondition(conditions, alias, extend, mapping) {
     let where;
     let index = 1;
 
@@ -116,20 +111,47 @@ exports.getWhereCondition = (conditions, alias, extend, mapping) => {
         let condition = conditionToString(col, conditions[col], alias, mapping, where[index]);
         // console.log("3.0 condition: " + condition);
         if(index >= 3) {
-            where[index-1] = "AND"
+            where[index-1] = (forFnFlag? "and" : "AND")
         }
         where[index] = condition;
         index += 2;
     }
 
-    if(where.length) {
+    if(false == forFnFlag && where.length) {
         where[0] = "WHERE";
+    } else {
+        where[0] = "";
     }
 
     return where;
 }
 
-exports.whereToString = whereToString;
+exports.whereToString = (whereArr) => {
+    // console.log("whereArr: " + whereArr);
+    for(let index in whereArr) {
+        if(Array.isArray(whereArr[index])) {
+            whereArr[index] = this.whereToString(whereArr[index]);
+        }
+    }
+
+    // console.log("whereToString : " + whereArr.join(" "));
+    return whereArr.join(" ").trim();
+}
+
+exports.getWhereFnCondition = (conditions, alias, extend, mapping) => {
+    let where;
+    
+    forFnFlag = true;
+    where = exportGetWhereCondition(conditions, alias, extend, mapping)
+    forFnFlag = false;
+
+    return where;
+}
+
+exports.getWhereCondition = (conditions, alias, extend, mapping) => {
+    return exportGetWhereCondition(conditions, alias, extend, mapping);
+}
+
 
 exports.fromDBtoParam = (dbData, extend, mapping) => {
     var paramUser = extend || {};

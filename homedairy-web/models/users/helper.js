@@ -97,8 +97,22 @@ exports.usertable = {
         return QueryBuilder.fromParamtoDB(paramUser, extend, userTblMapping);
     },
 
-    constructWhere(conditions, alias, extend) {
+    constructWhere: (conditions, alias, extend, forFn) => {
+        if(extend && "boolean" === typeof extend) {
+            forFn = extend;
+            extend = undefined;
+        } else if (alias && "boolean" === typeof alias) {
+            forFn = alias;
+            alias = undefined;
+        }
+        if(forFn) {
+            return QueryBuilder.getWhereFnCondition(conditions, alias, extend, userTblMapping);
+        }
         return QueryBuilder.getWhereCondition(conditions, alias, extend, userTblMapping);
+    },
+
+    getTableName: () => {
+        return userTblMapping.fn.name();
     }
 };
 
@@ -111,7 +125,21 @@ exports.userSecretTable = {
         return QueryBuilder.fromParamtoDB(paramUser, extend, userSecretTblMapping);
     },
 
-    constructWhere(condtions, alias, extend) {
+    constructWhere: (condtions, alias, extend, forFn) => {
+        if(extend && "boolean" === typeof extend) {
+            forFn = true;
+            extend = undefined;
+        } else if (alias && "boolean" === typeof alias) {
+            forFn = alias;
+            alias = undefined;
+        }
+        if(forFn) {
+            return QueryBuilder.getWhereFnCondition(conditions, alias, extend, userSecretTblMapping);
+        }
         return QueryBuilder.getWhereCondition(condtions, alias, extend, userSecretTblMapping);
+    },
+
+    getTableName: () => {
+        return userSecretTblMapping.fn.name();
     }
 }

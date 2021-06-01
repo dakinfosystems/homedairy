@@ -16,6 +16,8 @@ exports.getTableInsert = (row, table) => {
 exports.constructResults = (headers, data) => {
     var results = [];
 
+    //console.log("ConstructResults headers: " +JSON.stringify(headers));
+    // console.log("ConstructResults data: " +JSON.stringify(data));
     for(let xindex in data) {
         let result = {};
         for(let yindex in data[xindex]) {

@@ -3,23 +3,6 @@ var CommonHepler = require("../../lib/common.helper");
 var pool = require("../../lib/mysql").pool;
 
 
-function constructResults(headers, data) {
-    var results = [];
-
-    for(let xindex in data) {
-        let result = {};
-        for(let yindex in data[xindex]) {
-            result[headers[yindex]["name"]] = data[xindex][yindex];
-        }
-        // console.log("ConstructResults xindex: " + xindex);
-        // console.log("ConstructResults result: " + JSON.stringify(result, null, 4));            
-        results.push(result);
-    }
-
-    // console.log("constructResults: " + JSON.stringify(results, null, 4));
-    return results;
-}
-
 exports.findByUserId = (userid) => {
     return new Promise((resolve, reject) => {
         // console.log("Promise cb: " + user);
@@ -45,7 +28,7 @@ exports.findByUserId = (userid) => {
                 });
         })
         .then(() => {
-            var rawresult = constructResults(headers, rows);
+            var rawresult = CommonHepler.constructResults(headers, rows);
             var results = [];
 
             for(var index in rawresult) {
@@ -88,11 +71,12 @@ exports.list = (where) => {
             }
             // console.log("userModel list where: " + whereInArr);
 
+            // console.log("Here: " +JSON.stringify(HelperFn.whereToString(whereInArr)));
             var query = session.sql(
                 "SELECT * \
                 FROM User_Info_View " + 
-                HelperFn.whereToString(whereInArr))
-
+                HelperFn.whereToString(whereInArr));
+               
             return query.execute(results => {
                 // console.log("User Secret data: " + JSON.stringify(data, null, 4));
                 // console.log("User Secret query: " + JSON.stringify(results, null, 4));
@@ -102,7 +86,7 @@ exports.list = (where) => {
             });
         }).then(() => {
             /** process data */
-            var rawresult = constructResults(headers, data);
+            var rawresult = CommonHepler.constructResults(headers, data);
             var results = [];
 
             for(var index in rawresult) {
@@ -117,6 +101,7 @@ exports.list = (where) => {
 
             resolve(results);
         }).catch((err) => {
+            console.error("UserModel list error: " + JSON.stringify(err));
             reject(err);
         }).finally(() => {
             connection.close();
