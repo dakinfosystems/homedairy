@@ -7,7 +7,7 @@
  */
 exports.checkEntryParamter = function(req, res, next) {
     if (req.body && req.body.entries) {
-        // console.log("checkEntryParameter: ");
+        // console.log("checkEntryParameter: " +req.body.entries);
         let errors = [];
         try {
             let entries = JSON.parse(req.body.entries);
@@ -42,7 +42,7 @@ exports.checkEntryParamter = function(req, res, next) {
         } else {
             res.status(403).send({
                 response: "FAILURE",
-                msg: "Required parameters are missing"
+                msg: "Required parameters are missing. " +errors.join(", ")
             }).end();
         }
     } else {
@@ -75,8 +75,11 @@ exports.checkScheduleParameter = function(req, res, next) {
         if(!req.body.interval && !req.body.fixday) {
             errors.push("Interval");
         }
-        if(!req.body.quantity) {
+        if(!req.body.productQuantity) {
             errors.push("Quantity");
+        }
+        if(!req.body.productUnit) {
+            errors.push("Unit");
         }
     }
 

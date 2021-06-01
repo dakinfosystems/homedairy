@@ -1,6 +1,7 @@
 let ScheduleModel = require("../../models/schedule");
 let PassbookModel = require("../../models/passbook");
-var DateUtil = require("../../lib/native/date");
+let DateUtil = require("../../lib/native/date");
+let ProductModel = require("../../models/product");
 const { emit } = require("gulp");
 
 
@@ -90,6 +91,7 @@ exports.schedule = (req, res, next) => {
             "msg": "Scheduled " +result.affectedRows+ " of your request!"
         }).end();
     }).catch((err) => {
+        console.error("Customer schedule catch: " +JSON.stringify(err));
         res.status(500).send({
             "response": "FAILURE",
             "msg": "Error occured while storing",
@@ -253,27 +255,11 @@ exports.scanQR = (req, res, next) => {
 }
 
 /**
- * This function submit the transaction happened between customer and seller
- * 
- * @param {object} req express request
+ * This function just save the data
  * @param {object} res express response
- * @param {function} next express next function
+ * @param {object} data all entries from user 
  */
-exports.makeEntry = (req, res, next) => {
-    let data = [];
-
-    // get data and create data to save
-    // console.log("makeEntry entries: " + typeof entries);
-    for(let index in req.body.entries) {
-        let entry = {};
-        for(key in req.body.entries[index]) {
-            entry[key] = req.body.entries[index][key];
-        }
-
-        entry["custId"] = req.jwt.user.id;
-        entry["time"] = DateUtil.mysqlNow();
-        data.push(entry);
-    }
+function savePassbookEntry(res, data) {
     // Send data to Passbook model
     PassbookModel.save(data).then((results) => {
         // console.log("make entry then: " + results);
@@ -288,4 +274,104 @@ exports.makeEntry = (req, res, next) => {
             "code": err.info.code
         }).end();
     });
+}
+
+function getUnitList(conditions) {
+    return ProductModel.unit.list(conditions);
+}
+
+function getProductPrice(conditions) {
+    return ProductModel.product.price(conditions);
+}
+
+/**
+ * This function submit the transaction happened between customer and seller
+ * 
+ * @param {object} req express request
+ * @param {object} res express response
+ * @param {function} next express next function
+ */
+exports.makeEntry = (req, res, next) => {
+    let data = [];
+    let unitDataset;
+    let unitWhere = {
+        "fromUnit": {
+            "in": []
+        }
+    };
+    let productWhere = {
+        "id": {
+            "in": []
+        }
+    }
+
+    // Extract all unit of entries amd product's base unit and price
+    for(let index in req.body.entries) {
+        let unit = req.body.entries[index]["productUnit"]
+        let productId = req.body.entries[index]["productId"]
+        let entry = {};
+
+        for(key in req.body.entries[index]) {
+            entry[key] = req.body.entries[index][key];
+        }
+
+        entry["custId"] = req.jwt.user.id;
+        entry["time"] = DateUtil.mysqlNow();
+        data.push(entry);
+        // console.log("Product makeEntry data: " +JSON.stringify(data));
+
+        unitWhere["fromUnit"]["in"].push("\"" +unit+ "\"");
+        productWhere["id"]["in"].push("\"" +productId+ "\"");
+        // console.log("Product makeEntry unitWhere: " +JSON.stringify(unitWhere));
+        // console.log("Product makeEntry productWhere: " +JSON.stringify(productWhere));
+    }
+    // Get unit conversion from table
+    getUnitList(unitWhere).then((resultset) => {
+        unitDataset = resultset;
+        // console.log("Product makeEntry units: " +JSON.stringify(unitDataset));
+        // get product price
+        return getProductPrice(productWhere);
+    }).then((resultset) => {
+        // console.log("Customer makeEntry price: " +JSON.stringify(resultset));
+        // Calculate price of product taken create data to save
+        for(let index in data) {
+            let product;
+            let unit;
+
+            for(let index2 in resultset) {
+                if(data[index]["productId"] == resultset[index2]["id"]) {
+                    product = resultset[index2];
+                    if(product["baseUnit"] == data[index]["productUnit"]) {
+                        data[index]["productPrice"] = (parseInt(data[index]["productQuantity"]) * product["costPerUnit"]);
+                    }
+                    break;
+                }
+            }
+
+            if(data[index]["productPrice"]) {
+                // console.log("Customer makeEntry price: " +data[index]["productPrice"]);
+                continue;
+            }
+
+            for(let index2 in unitDataset) {
+                if(data[index]["productUnit"] == unitDataset[index2]["fromUnit"] &&
+                   product["baseUnit"] == unitDataset[index2]["toUnit"]) {
+                    unit = unitDataset[index2];
+                    break;
+                }
+            }
+
+            data[index]["productPrice"] = (parseInt(data[index]["productQuantity"]) * unit["multiplicand"] / unit["denominator"]) * product["costPerUnit"];
+
+            // console.log("Customer makeEntry price: " +data[index]["productPrice"]);
+        }
+        savePassbookEntry(res, data);
+    })
+    .catch((err) => {
+        console.error("Product makeEntry catch: " +JSON.stringify(err));
+        res.status(500).send({
+            response: "FAILURE",
+            msg: "Couldn't process due to internal error."
+        }).end();
+    })
 }
