@@ -1,5 +1,4 @@
 var QueryBuilder = require("../../lib/queryBuilder");
-var UserConfig = require("../../configs/user.config").user
 
 /**
  * 
@@ -12,6 +11,7 @@ var TransactionTbl = {
     "productId": "product_id",
     "productQuantity": "quantity",
     "time": "time",
+    "productUnit": "unit_type",
     "productPrice": "price"
 };
 
@@ -52,7 +52,20 @@ exports.transactionTable = {
         return QueryBuilder.fromParamtoDB(paramRow, extend, TransactionTbl);
     },
 
-    constructWhere(conditions, alias, extend) {
+    constructWhere(conditions, alias, extend, forFn) {
+        if(extend && "boolean" === typeof extend) {
+            forFn = true;
+            extend = undefined;
+        } else if (alias && "boolean" === typeof alias) {
+            forFn = alias;
+            alias = undefined;
+        }
+        if(forFn) {
+            return QueryBuilder.getWhereFnCondition(conditions, alias, extend, TransactionTbl);
+        }
         return QueryBuilder.getWhereCondition(conditions, alias, extend, TransactionTbl);
+    },
+    getTableValue: () => {
+        return TransactionTbl.fn.name();
     }
 };
