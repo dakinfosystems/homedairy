@@ -51,3 +51,24 @@ exports.unsubscribe = (req, res, next) => {
         }).end();
     });
 }
+
+exports.linkIt = (req, res, next) => {
+    let record = {
+        "altCustId": req.body.altCustId,
+        "custId": req.jwt.user.id,
+        "sellerId": req.body.sellerId
+    }
+    SubscribeModel.add.altSubs(record).then((status) => {
+        res.status(200).send({
+            "response": "SUCCESS",
+            "numOfRecordsAdded": status.affectedRows
+        }).end();
+    })
+    .catch((err) => {
+        console.error("Subscribe linkIt catch: " +JSON.stringify(err));
+        res.status(500).send({
+            response: "FAILURE",
+            msg: ((err.info && err.info.msg)? err.info.msg : "") + " Error while storing information."
+        }).end();
+    })
+}

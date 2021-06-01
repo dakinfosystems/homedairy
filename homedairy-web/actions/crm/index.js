@@ -19,8 +19,12 @@ exports.handler = {
     ],
     linkAccount: [
         AuthMiddleware.validTokenNeeded,
+        PermissionMiddleware.onlyUserTypeRequired(UserConfig.user.type.CUSTOMER),
+        CRMMiddleware.check.linkAccount.parameter,
+        RequestHandler.linkIt
     ],
     linkResponse: [
         AuthMiddleware.validTokenNeeded,
+        PermissionMiddleware.onlyUserTypeRequired(UserConfig.user.type.CUSTOMER),
     ]
 }

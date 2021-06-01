@@ -2,7 +2,35 @@ var pool = require("../../lib/mysql").pool;
 var CommonHelper = require("../../lib/common.helper");
 var Helper = require("./helper");
 
-exports.add = (params) => {
+
+function addAltSubscriber(params) {
+    return new Promise((resolve, reject) => {
+        var connection;
+
+        pool.getSession().then((session) => {
+            connection = session;
+
+            var [cols, values] = CommonHelper.getTableInsert(params, Helper.altSubsTable);
+            var table = connection.getSchema(process.env.DB_NAME).getTable(Helper.altSubsTable.getTableName());
+
+            // console.log(JSON.stringify(params));
+            return table.insert(cols).values(values).execute();
+        }).then((status) => {
+            let affectedRows = status.getAffectedItemsCount();
+
+            resolve({
+                "affectedRows": affectedRows
+            });
+        }).catch((err) => {
+            console.error("SubscribeModel add catch: " +JSON.stringify(err));
+            reject(err);
+        }).finally(() => {
+            connection.close();
+        });
+    });
+}
+
+function addSubscriber(params) {
     return new Promise((resolve, reject) => {
         var connection;
 
@@ -10,7 +38,7 @@ exports.add = (params) => {
             connection = session;
 
             var [cols, values] = CommonHelper.getTableInsert(params, Helper.subsTable);
-            var subsTable = connection.getSchema(process.env.DB_NAME).getTable("Subs_Tbl");
+            var subsTable = connection.getSchema(process.env.DB_NAME).getTable(Helper.subsTable.getTableName());
 
             // console.log(JSON.stringify(params));
             return subsTable.insert(cols).values(values).execute();
@@ -26,7 +54,12 @@ exports.add = (params) => {
         }).finally(() => {
             connection.close();
         });
-    })
+    });
+}
+
+exports.add = {
+    subs: addSubscriber,
+    altSubs: addAltSubscriber
 }
 exports.search = (jsonWhere) => {
     return new Promise((resolve, reject) => {
@@ -43,6 +76,7 @@ exports.search = (jsonWhere) => {
                 where = Helper.whereToString(whereInArr);
             } catch (ex) {
                 reject(ex);
+                return;
             }
             // console.log("userModel list where: " + where);
 
@@ -71,7 +105,7 @@ exports.search = (jsonWhere) => {
                 "subscriptions": results
             });
         }).catch((err) => {
-            // console.error(err);
+            console.error(err);
             reject(err);
         }).finally(() => {
             connection.close();
