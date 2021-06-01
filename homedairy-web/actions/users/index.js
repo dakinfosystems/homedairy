@@ -2,6 +2,8 @@ var AuthMiddleware = require("../../middlewares/auth.middleware");
 var RequestHandler = require("./handlers");
 var UserMiddleware = require("../../middlewares/users.middleware");
 
+
+// TODO: Complete signup flow
 exports.handler = {
     getUser: [
         AuthMiddleware.validTokenNeeded,

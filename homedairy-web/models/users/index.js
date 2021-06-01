@@ -52,7 +52,7 @@ exports.findByUserId = (userid) => {
 }
 
 exports.list = (where) => {
-    // console.log("UserModel list: " + JSON.stringify(where));
+    // console.log("UserModel list where: " + JSON.stringify(where));
     return new Promise((resolve, reject) => {
         var headers = [];
         var data = [];

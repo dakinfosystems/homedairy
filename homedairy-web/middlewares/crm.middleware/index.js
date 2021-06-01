@@ -16,7 +16,7 @@ exports.check = {
                 next();
             } else {
                 res.status(200).send({
-                    response: "FAIL",
+                    response: "FAILURE",
                     msg: "Seller id is required"
                 }).end();
             }
@@ -36,28 +36,28 @@ exports.check = {
                 next();
             } else {
                 res.status(200).send({
-                    response: "FAIL",
+                    response: "FAILURE",
                     msg: "Seller id is required"
                 }).end();
             }
         }
     },
     linkAccount: {
-        parameter: () => {
+        parameter: (req, res, next) => {
             let errors = [];
-            if(req.body && !req.body.custId) {
-                errors.push("Customer id is required!");
+            if(req.body && !req.body.altCustId) {
+                errors.push("Customer Id");
             }
             if(req.body && !req.body.sellerId) {
-                errors.push("Seller id is required!");
+                errors.push("Seller Id required");
             }
 
             if(0 === errors.length) {
-                return next();
+                next();
             } else {
                 res.status(200).send({
-                    response: "FAIL",
-                    msg: errors.join(" ")
+                    response: "FAILURE",
+                    msg: "Required missing parameters: " +errors.join(" ")
                 }).end();
             }
         }

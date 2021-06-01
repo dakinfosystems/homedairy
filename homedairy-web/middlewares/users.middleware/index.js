@@ -215,7 +215,7 @@ exports.verifyOTP = (req, res, next) => {
                 next();
             } else {
                 res.status(200).send({
-                    response: "FAIL",
+                    response: "FAILURE",
                     msg: "OTP is invalid"
                 }).end();
             }

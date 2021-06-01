@@ -64,96 +64,97 @@ function addUser(req, res, next) {
     });
 }
 
-exports.users = {
-    get: (req, res) => {
-        let filters = req.filter;
-        let where = {};
-        
-        // console.log("filters: " + JSON.stringify(filters));
-        for(let attr in filters) {
-            switch(attr) {
-                case "q":
-                    where["or"] =  {
-                        "name": {
-                            "like": "%" + filters[attr] + "%"
-                        },
-                        "mobile": {
-                            "like": filters[attr] + "%",
-                        }
-                    };
-                    break;
-                case "userType":
-                    where[attr] = {
-                        "eq": filters[attr]
+function getUserSearchCondition(filters) {
+    let where = {};
+    for(let attr in filters) {
+        switch(attr) {
+            case "q":
+                where["or"] =  {
+                    "name": {
+                        "like": "%" + filters[attr] + "%"
+                    },
+                    "mobile": {
+                        "like": filters[attr] + "%",
                     }
-                    break;
-                default:
-                    where[attr] = {
-                        "eq": filters[attr]
-                    };
+                };
+                break;
+            case "userType":
+                where[attr] = {
+                    "eq": filters[attr]
+                }
+                break;
+            default:
+                where[attr] = {
+                    "eq": filters[attr]
+                };
+        }
+    }
+
+    return where;
+}
+
+function getSubscribeConditions(req) {
+    let where = {};
+    if(req.jwt.user.permission & UserConfig.type.SELLER) {
+        where = {
+            "sellerId": {
+                "eq": req.jwt.user.id
+            },
+            "custId": {
+                "eq": req.filter["userid"]
             }
         }
+    } else {
+        where = {
+            "custId": {
+                "eq": req.jwt.user.id
+            },
+            "sellerId": {
+                "eq": req.filter["userid"]
+            }
+        }
+    }
 
-        UserModel.list(where).then((users) => {
+    return where;
+}
+
+exports.users = {
+    get: (req, res) => {
+        let where = {};
+        let users = [];
+        
+        // console.log("filters: " + JSON.stringify(req.filter));
+        where = getUserSearchCondition(req.filter);
+
+        UserModel.list(where).then((resultset) => {
             let where = {};
 
+            users = resultset;
             // console.log("Users: " + JSON.stringify(users));
-            if("q" in filters) {
-                return res.status(200)
+            if("q" in req.filter || 0 === users.length) {
+                res.status(200)
                     .send({
                         response: "SUCCESS",
                         users: users
                     }).end();
+                return;
             }
 
-            if(req.jwt.user.permission & UserConfig.type.SELLER) {
-                where = {
-                    "sellerId": {
-                        "eq": req.jwt.user.id
-                    },
-                    "custId": {
-                        "eq": filters["userid"]
-                    }
-                }
-            } else {
-                where = {
-                    "custId": {
-                        "eq": req.jwt.user.id
-                    },
-                    "sellerId": {
-                        "eq": filters["userid"]
-                    }
-                }
-            }
-
-            if(0 === users.length) {
-                return res.status(200)
-                    .send({
-                        response: "SUCCESS",
-                        user: {}
-                    }).end();
-            }
-            SubscribeModel.search(where).then((result) => {
+            where = getSubscribeConditions(req);console.log("Where: " + JSON.stringify(where));
+            return SubscribeModel.search(where).then((result) => {
                 users[0]["isSubscribed"] = (result.subscriptions.length) ? true: false;
-
+    
                 // console.log("Subscriptions: " + JSON.stringify(result));
-                return res.status(200)
+                res.status(200)
                     .send({
                         response: "SUCCESS",
-                        user: users[0]
+                        from: "Here",
+                        user: users
                     }).end();
-            })
-            .catch(err => {
-                // console.log("Subscribes catch: " + JSON.stringify(err));
-                res.status(500).send({
-                    response: "FAILURE",
-                    msg: "Error occured while getting users",
-                    code: err.info
-                }).end();
-            })
-
-        }).catch(err => {
-            // console.log("Users catch: " + JSON.stringify(err));
+            });
+        })
+        .catch(err => {
+            console.log("Users catch: " + JSON.stringify(err));
             res.status(500).send({
                 response: "FAILURE",
                 msg: "Error occured while getting users",
