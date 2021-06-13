@@ -6,7 +6,7 @@ exports.subscribe = (req, res, next) => {
         sellerId: req.body.sellerId
     }
 
-    SubscribeModel.add(param).then((status) => {
+    SubscribeModel.add.subs(param).then((status) => {
         // console.log("Status: " + status);
         res.status(200).send({
             response: "SUCCESS",
@@ -36,7 +36,7 @@ exports.unsubscribe = (req, res, next) => {
         }
     };
 
-    SubscribeModel.remove(conditions).then((status) => {
+    SubscribeModel.remove.subs(conditions).then((status) => {
         // console.log("Subcribe remove status: " +JSON.stringify(status));
         res.status(200).send({
             "response": "SUCCESS",

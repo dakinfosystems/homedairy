@@ -1,15 +1,14 @@
 let ScheduleModel = require("../../models/schedule");
 let PassbookModel = require("../../models/passbook");
+let SubscribeModel = require("../../models/subscribe");
 let DateUtil = require("../../lib/native/date");
 let ProductModel = require("../../models/product");
-const { emit } = require("gulp");
 
 
 /**
  * 
  * @param {*} req 
  * @param {*} res 
- * @param {*} next 
  */
 function getUnpaidTransaction(req, res) {
     let page = 1;
@@ -42,7 +41,6 @@ function getUnpaidTransaction(req, res) {
  * 
  * @param {*} req 
  * @param {*} res 
- * @param {*} next 
  */
  function getPaidTransaction(req, res) {
     let page = 1;
@@ -216,12 +214,19 @@ exports.scanQR = (req, res, next) => {
         }
     };
 
-    /* requset Schedule model to send resuts based on qrcode and id.*/
-    ScheduleModel.getTodayEntries(where).then((scheduleResults) => {
+    /* Check if it is altnate number by getting details of customer id */
+    SubscribeModel.search.altSubs({'altCustId': { "eq": req.jwt.user.id }}).then((resultset) => {
+        if(0 != resultset.subscriptions.length) {
+            where.id.eq = resultset.subscriptions[0].custId;
+        }
+        /* requset Schedule model to send resuts based on qrcode and id.*/
+        return ScheduleModel.getTodayEntries(where);    
+    }).then((scheduleResults) => {
         // console.log(JSON.stringify(scheduleResults));
         // get today transaction then compare and send
         scheduleResult= [].concat(scheduleResults);
         return PassbookModel.getTodaysTransactionOf(where.id.eq)
+
     }).then((passbookResults) => {
         let finalResult = [];
         // console.log("Passbook: " + JSON.stringify(passbookResults));
@@ -305,28 +310,35 @@ exports.makeEntry = (req, res, next) => {
         }
     }
 
-    // Extract all unit of entries amd product's base unit and price
-    for(let index in req.body.entries) {
-        let unit = req.body.entries[index]["productUnit"]
-        let productId = req.body.entries[index]["productId"]
-        let entry = {};
+    SubscribeModel.search.altSubs({ 
+        "altCustId": { "eq": req.jwt.user.id }
+    }).then((resultset) => {
+        // Extract all unit of entries amd product's base unit and price
+        for(let index in req.body.entries) {
+            let unit = req.body.entries[index]["productUnit"]
+            let productId = req.body.entries[index]["productId"]
+            let entry = {};
 
-        for(key in req.body.entries[index]) {
-            entry[key] = req.body.entries[index][key];
+            for(key in req.body.entries[index]) {
+                entry[key] = req.body.entries[index][key];
+            }
+
+            entry["custId"] = (resultset.subscriptions.length) ?
+                resultset.subscriptions[0].custId :
+                req.jwt.user.id;
+            entry["time"] = DateUtil.mysqlNow();
+            data.push(entry);
+            // console.log("Product makeEntry data: " +JSON.stringify(data));
+
+            unitWhere["fromUnit"]["in"].push("\"" +unit+ "\"");
+            productWhere["id"]["in"].push("\"" +productId+ "\"");
+            // console.log("Product makeEntry unitWhere: " +JSON.stringify(unitWhere));
+            // console.log("Product makeEntry productWhere: " +JSON.stringify(productWhere));
         }
-
-        entry["custId"] = req.jwt.user.id;
-        entry["time"] = DateUtil.mysqlNow();
-        data.push(entry);
-        // console.log("Product makeEntry data: " +JSON.stringify(data));
-
-        unitWhere["fromUnit"]["in"].push("\"" +unit+ "\"");
-        productWhere["id"]["in"].push("\"" +productId+ "\"");
-        // console.log("Product makeEntry unitWhere: " +JSON.stringify(unitWhere));
-        // console.log("Product makeEntry productWhere: " +JSON.stringify(productWhere));
-    }
-    // Get unit conversion from table
-    getUnitList(unitWhere).then((resultset) => {
+        // Get unit conversion from table
+        return getUnitList(unitWhere)
+    })
+    .then((resultset) => {
         unitDataset = resultset;
         // console.log("Product makeEntry units: " +JSON.stringify(unitDataset));
         // get product price
@@ -342,7 +354,9 @@ exports.makeEntry = (req, res, next) => {
                 if(data[index]["productId"] == resultset[index2]["id"]) {
                     product = resultset[index2];
                     if(product["baseUnit"] == data[index]["productUnit"]) {
-                        data[index]["productPrice"] = (parseInt(data[index]["productQuantity"]) * product["costPerUnit"]);
+                        data[index]["productPrice"] = 
+                            (parseInt(data[index]["productQuantity"])
+                            * product["costPerUnit"]);
                     }
                     break;
                 }
@@ -354,14 +368,17 @@ exports.makeEntry = (req, res, next) => {
             }
 
             for(let index2 in unitDataset) {
-                if(data[index]["productUnit"] == unitDataset[index2]["fromUnit"] &&
-                   product["baseUnit"] == unitDataset[index2]["toUnit"]) {
+                if(data[index]["productUnit"] == unitDataset[index2]["fromUnit"]
+                    && product["baseUnit"] == unitDataset[index2]["toUnit"]) {
+
                     unit = unitDataset[index2];
                     break;
                 }
             }
 
-            data[index]["productPrice"] = (parseInt(data[index]["productQuantity"]) * unit["multiplicand"] / unit["denominator"]) * product["costPerUnit"];
+            data[index]["productPrice"] = (parseInt(data[index]["productQuantity"])
+             * unit["multiplicand"] / unit["denominator"])
+             * product["costPerUnit"];
 
             // console.log("Customer makeEntry price: " +data[index]["productPrice"]);
         }

@@ -1,7 +1,7 @@
 let HelperFn = require("./helper");
 let CommonHepler = require("../../lib/common.helper");
 let pool = require("../../lib/mysql").pool;
-let DateUtil = require("../../lib/native/date")
+let DateUtil = require("../../lib/native/date");
 
 let globalValue = 0;
 
@@ -223,12 +223,18 @@ exports.getTodaysTransactionOf = (customerId, sellerid) => {
         let data = [];
 
         pool.getSession().then((session) => {
-            connection = session;
+            let table;
+            let findstr = "";
             let transactionTime = new Date();
-            let table = session.getSchema(process.env.DB_NAME).getTable("Transaction_Tbl");
+
+            connection = session;            
+            table = connection.getSchema(process.env.DB_NAME).getTable("Transaction_Tbl");
 
             transactionTime.setHours(0,0,0,0);
-            let findstr = "time >= \"" +transactionTime+ "\" and cust_id == \"" +customerId+ "\"";
+            findstr = "time >= \"" +transactionTime+ "\"";
+            if (customerId) {
+                findstr += " and cust_id == \"" +customerId+ "\"";
+            }
             if (sellerid) {
                 findstr += " and seller_id == \"" +sellerid+ "\"";
             }

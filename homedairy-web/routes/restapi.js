@@ -7,18 +7,21 @@ var CustomerAction = require("../actions/customers");
 var CRMAction = require("../actions/crm");
 
 /* POST Methods */
+/* Let the customer or the consumer signup */
+router.post("/customer/signup", UserAction.handler.addCustomer);
+/* User will verify its single existence */
+router.post("/verifyUser", UserAction.handler.verify);
+/* User will verify its single existence */
+router.post("/resendOtp", UserAction.handler.resendOtp);
 /* Let user login */
 router.post("/dologin", AuthorizationAction.handler.login);
 /* let refresh token of already logged in user */
 router.post("/refreshtoken", AuthorizationAction.handler.refreshToken);
-/* User will verify its single existence */
-router.post("/verifyUser", UserAction.handler.verify);
+
 
 /**
  *  Customer apis starts
  */
-/* Let the customer or the consumer signup */
-router.post("/customer/signup", UserAction.handler.addCustomer);
 /* let the consumer subscirbe to the producer */
 router.post("/subscribe", CRMAction.handler.subscribe);
 /* let the customer unsubscribe to the producer */

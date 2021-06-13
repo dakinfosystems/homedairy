@@ -3,33 +3,6 @@ var CommonHelper = require("../../lib/common.helper");
 var Helper = require("./helper");
 
 
-function addAltSubscriber(params) {
-    return new Promise((resolve, reject) => {
-        var connection;
-
-        pool.getSession().then((session) => {
-            connection = session;
-
-            var [cols, values] = CommonHelper.getTableInsert(params, Helper.altSubsTable);
-            var table = connection.getSchema(process.env.DB_NAME).getTable(Helper.altSubsTable.getTableName());
-
-            // console.log(JSON.stringify(params));
-            return table.insert(cols).values(values).execute();
-        }).then((status) => {
-            let affectedRows = status.getAffectedItemsCount();
-
-            resolve({
-                "affectedRows": affectedRows
-            });
-        }).catch((err) => {
-            console.error("SubscribeModel add catch: " +JSON.stringify(err));
-            reject(err);
-        }).finally(() => {
-            connection.close();
-        });
-    });
-}
-
 function addSubscriber(params) {
     return new Promise((resolve, reject) => {
         var connection;
@@ -57,11 +30,7 @@ function addSubscriber(params) {
     });
 }
 
-exports.add = {
-    subs: addSubscriber,
-    altSubs: addAltSubscriber
-}
-exports.search = (jsonWhere) => {
+function searchSubs(jsonWhere) {
     return new Promise((resolve, reject) => {
         var connection;
         var data = [];
@@ -113,7 +82,7 @@ exports.search = (jsonWhere) => {
     });
 }
 
-exports.remove = (conditions) => {
+function removeSubs(conditions) {
     return new Promise((resolve, reject) => {
         let connection;
 
@@ -146,4 +115,145 @@ exports.remove = (conditions) => {
             reject(err);
         });
     });
+}
+
+function addAltSubscriber(params) {
+    return new Promise((resolve, reject) => {
+        var connection;
+
+        pool.getSession().then((session) => {
+            connection = session;
+
+            var [cols, values] = CommonHelper.getTableInsert(params, Helper.altSubsTable);
+            var table = connection.getSchema(process.env.DB_NAME).getTable(Helper.altSubsTable.getTableName());
+
+            // console.log(JSON.stringify(params));
+            return table.insert(cols).values(values).execute();
+        }).then((status) => {
+            let affectedRows = status.getAffectedItemsCount();
+
+            resolve({
+                "affectedRows": affectedRows
+            });
+        }).catch((err) => {
+            console.error("SubscribeModel add catch: " +JSON.stringify(err));
+            reject(err);
+        }).finally(() => {
+            connection.close();
+        });
+    });
+}
+
+function searchAltSubs(jsonWhere) {
+    // console.log("SubscribeModel searchaltsusbs jsonWhere: " +JSON.stringify(jsonWhere));
+    return new Promise((resolve, reject) => {
+        var connection;
+        var data = [];
+
+        pool.getSession().then((session) => {
+            connection = session;
+
+            let where = "";
+
+            try {
+                let whereInArr = Helper.altSubsTable.constructWhere(jsonWhere);
+                where = Helper.whereToString(whereInArr);
+            } catch (ex) {
+                reject(ex);
+                return;
+            }
+            // console.log("SubscribeModel searchaltsusbs where: " + where);
+
+            var query = session.sql(
+                "SELECT * \
+                FROM " +Helper.altSubsTable.getTableName()+ " " 
+                +where );
+
+            return query.execute(row => {
+                // console.log("User Secret data: " + JSON.stringify(data, null, 4));
+                // console.log("SubscribeModel searchaltsusbs query: " + JSON.stringify(row, null, 4));
+                data.push(row);
+            }, meta => {
+                headers = meta;
+            });
+        }).then(() => {
+            let rawResults = CommonHelper.constructResults(headers, data);
+            let results = [];
+
+            for(let index in rawResults) {
+                let row = Helper.altSubsTable.fromDBtoParam(rawResults[index]);
+
+                results.push(row);
+            }
+            resolve({
+                "subscriptions": results
+            });
+        }).catch((err) => {
+            console.error(err);
+            reject(err);
+        }).finally(() => {
+            connection.close();
+        });
+    });
+}
+
+function removeAltSubs(conditions) {
+    return new Promise((resolve, reject) => {
+        let connection;
+
+        pool.getSession().then((session) => {
+            let where = "";
+            let table;
+
+            connection = session;
+            
+            try {
+                let conditionArr = Helper.altSubsTable.constructWhere(conditions, true);
+                where = Helper.whereToString(conditionArr);
+            } catch (err) {
+                reject(err);
+                return;
+            }
+            // console.log("Subscribe remove query: " +where);
+            table = session.getSchema(process.env.DB_NAME).getTable(Helper.altSubsTable.getTableName());
+
+            return table.delete().where(where).execute();
+        }).then((status) => {
+            // Check: why there is not output
+            // console.log("Subscibe remove result: " +JSON.stringify(status.getAffectedItemsCount));
+            resolve({
+                "affectedRows": 1
+            });
+        })
+        .catch((err) => {
+            // console.error("Subscribe remove catch: " +JSON.stringify(err));
+            reject(err);
+        });
+    });
+}
+
+
+/******************************************************************************/
+/**
+ * Exports add functionality of subscribers and alternate subscribers
+ */
+exports.add = {
+    subs: addSubscriber,
+    altSubs: addAltSubscriber
+}
+
+/**
+ * Exports search functionality of subscribers and alternate subscribers
+ */
+exports.search = {
+    subs: searchSubs,
+    altSubs: searchAltSubs,
+}
+
+/**
+ * Exports remove functionality of subscribers and alternate subscribers
+ */
+exports.remove = {
+    subs: removeSubs,
+    altSubs: removeAltSubs
 }

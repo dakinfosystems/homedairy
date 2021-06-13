@@ -161,7 +161,10 @@ exports.checkSignUpParamter = (req, res, next) => {
         msg = "Please enter sign up details!!"
     }
 
-    res.status(403).send({error: msg}).end();
+    res.status(403).send({
+        response: "FAILURE",
+        error: msg
+    }).end();
 }
 
 /**
@@ -205,18 +208,31 @@ exports.addSellerUserType = () => {
 exports.verifyOTP = (req, res, next) => {
     // console.log("User: " + JSON.stringify(req.jwt));
     // console.log("Body: " + JSON.stringify(req.body));
-    UserModel.findDoc(req.jwt.user.id, "otp")
+    UserModel.findDoc(req.jwt.user.id, ["otp", "createdOn"])
     .then((user) => {
         // console.log("findByUserId => then " + JSON.stringify(user));
+        let timeNow = new Date();
+
+        timeNow.setMinutes(timeNow.getMinutes - 15);
         if(user[0]) {
             // Check OTP
-            if(user[0].otp === req.body.otpassword) {
-                UserModel.save(req.jwt.user.id, {"otp" : "-"}).then(() => {});
+            if(user[0].otp === req.body.otpassword 
+                && user[0].createdOn >= timeNow) {
+                
+                UserModel.save.authData(req.jwt.user.id, {
+                    "otp" : "-",
+                    "createdOn": "-"
+                }).then(() => {});
                 next();
-            } else {
+            } else if(user[0].otp !== req.body.otpassword) {
                 res.status(200).send({
                     response: "FAILURE",
                     msg: "OTP is invalid"
+                }).end();
+            } else if(user[0].createdOn < timeNow) {
+                res.status(200).send({
+                    response: "FAILURE",
+                    msg: "OTP is expired"
                 }).end();
             }
         } else {

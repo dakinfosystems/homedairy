@@ -10,6 +10,21 @@ var userTblMapping = {
     "qrCode": "qr_code"
 };
 
+var userSecretTblMapping = {
+    "userid": "id",
+    "password": "auth_string",
+    "isVerified": "is_verified",
+    "userType": "type",
+    "userLevel": "level"
+};
+
+let userAuthTbl = {
+    "id": "_id",
+    "refreshToken": "refresh_token",
+    "otp": "otp",
+    "createdOn": "createdOn"
+}
+
 function getUserTblDefaultValue(col) {
     let value = "";
 
@@ -22,19 +37,6 @@ function getUserTblDefaultValue(col) {
     }
 
     return value;
-}
-
-userTblMapping.fn = {
-    name: () => { return "User_Tbl"; },
-    getDefaultValue: getUserTblDefaultValue
-}
-
-var userSecretTblMapping = {
-    "userid": "id",
-    "password": "auth_string",
-    "isVerified": "is_verified",
-    "userType": "type",
-    "userLevel": "level"
 }
 
 function getUserSecretTblDefaultValue(col) {
@@ -58,9 +60,34 @@ function getUserSecretTblDefaultValue(col) {
     return value;
 }
 
+function getUserAuthTblDefaultValue(col) {
+    let value = "";
+
+    // console.log(col)
+    switch (col) {
+        case "refresh_token":
+            value = " ";
+            break;
+        default:
+            break;
+    }
+
+    return value;
+}
+
+userTblMapping.fn = {
+    name: () => { return "User_Tbl"; },
+    getDefaultValue: getUserTblDefaultValue
+};
+
 userSecretTblMapping.fn = {
     name: () => { return "User_Secret_Tbl"; },
     getDefaultValue: getUserSecretTblDefaultValue
+};
+
+userAuthTbl.fn = {
+    name: () => { return "User_Auth_Tbl"; },
+    getDefaultValue: getUserAuthTblDefaultValue
 }
 
 exports.sortTablewise = (data) => {
@@ -142,4 +169,32 @@ exports.userSecretTable = {
     getTableName: () => {
         return userSecretTblMapping.fn.name();
     }
-}
+};
+
+exports.userAuthTable = {
+    fromDBtoParam : (dbUser, extend) => {
+        return QueryBuilder.fromDBtoParam(dbUser, extend, userAuthTbl);
+    },
+
+    fromParamtoDB: (paramUser, extend) => {
+        return QueryBuilder.fromParamtoDB(paramUser, extend, userAuthTbl);
+    },
+
+    constructWhere: (condtions, alias, extend, forFn) => {
+        if(extend && "boolean" === typeof extend) {
+            forFn = true;
+            extend = undefined;
+        } else if (alias && "boolean" === typeof alias) {
+            forFn = alias;
+            alias = undefined;
+        }
+        if(forFn) {
+            return QueryBuilder.getWhereFnCondition(conditions, alias, extend, userAuthTbl);
+        }
+        return QueryBuilder.getWhereCondition(condtions, alias, extend, userAuthTbl);
+    },
+
+    getTableName: () => {
+        return userAuthTbl.fn.name();
+    }
+};

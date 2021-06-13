@@ -3,12 +3,39 @@ var CommonHepler = require("../../lib/common.helper");
 var pool = require("../../lib/mysql").pool;
 
 
+function updateUserAuthTable(id, data) {
+    return new Promise((resolve, reject) => {
+        var connection;
+        // console.log("id: " + id + "\nToken: " + token);
+        pool.getSession().then(session => {
+            var collection = session.getSchema(process.env.DB_NAME)
+                .getCollection(HelperFn.userAuthTable.getTableName());
+            
+                connection = session;
+
+            return collection.modify("_id = :userid")
+            .bind("userid", id)
+            .patch(data)
+            .execute();
+        }).then((status) => {
+            resolve({
+                "affectedRows": status.getAffectedItemsCount()
+            });
+        }).catch((err) => {
+            reject(err);
+        }).finally(() => {
+            connection.close();
+        });
+    });
+}
+/**
+ * It searches user by its id
+ * 
+ * @param {userid} userid 
+ * @returns 
+ */
 exports.findByUserId = (userid) => {
     return new Promise((resolve, reject) => {
-        // console.log("Promise cb: " + user);
-        // setTimeout(() => {
-        //     resolve(user);
-        // }, 5);
         var rows = [];
         var headers = [];
         var connection;
@@ -33,8 +60,9 @@ exports.findByUserId = (userid) => {
 
             for(var index in rawresult) {
                 var result = HelperFn.userSecretTable.fromDBtoParam(rawresult[index]);
+                result = HelperFn.usertable.fromDBtoParam(rawresult[index],result);
                 results.push(
-                    HelperFn.usertable.fromDBtoParam(rawresult[index],result)
+                    result
                 );
             }
 
@@ -51,6 +79,12 @@ exports.findByUserId = (userid) => {
     })
 }
 
+/**
+ * It searches user based on conditions
+ * 
+ * @param {where} where 
+ * @returns promise
+ */
 exports.list = (where) => {
     // console.log("UserModel list where: " + JSON.stringify(where));
     return new Promise((resolve, reject) => {
@@ -111,7 +145,6 @@ exports.list = (where) => {
 
 exports.add = (user) => {
     // console.log(JSON.stringify(user));
-
     return new Promise((resolve, reject) => {
         var userSecretTable;
         var userAuthCollection;
@@ -121,14 +154,14 @@ exports.add = (user) => {
         /* Send data to database */
         pool.getSession().then(session => {
             var [cols, values] = CommonHepler.getTableInsert(user, HelperFn.usertable);
-            var userTable = session.getSchema(process.env.DB_NAME).getTable("User_Tbl");
+            var userTable = session.getSchema(process.env.DB_NAME).getTable(HelperFn.usertable.getTableName());
 
             // console.log(cols + " == " + values);
             connection = session;
             userSecretTable = session.getSchema(process.env.DB_NAME)
-                .getTable("User_Secret_Tbl");
+                .getTable(HelperFn.userSecretTable.getTableName());
             userAuthCollection = session.getSchema(process.env.DB_NAME)
-                .getCollection("User_Auth_Tbl");
+                .getCollection(HelperFn.userAuthTable.getTableName());
 
             return userTable.insert(cols).values(values).execute();
         })
@@ -146,7 +179,9 @@ exports.add = (user) => {
             // console.log("2. Affected rows: " + status.getAffectedItemsCount());
             userAuthCollection.add({
                 "_id": user.userid,
-                "refresh_token": ""
+                "refresh_token": "-",
+                "otp": "-",
+                "createdOn": "-"
             }).execute();
             affectedRows += status.getAffectedItemsCount()
             resolve({
@@ -163,67 +198,56 @@ exports.add = (user) => {
 }
 
 /**
- * It update table 
+ * It update user data in database
+ * 
+ * @param where condition to find user to update
+ * @param data data of user to be update
+ * @returns A promise
  */
 exports.update = (where, data) => {
     return new Promise((resolve, reject) => {
-        /** Update table */
+        /**  
+         * TODO: complete update opeartion
+         */
         var connection;
         pool.getSession().then(session => {
             let sortedData = HelperFn.sortTablewise(data);
 
             connection = session;
             // console.log("UserModel update sortedData: " + sortedData);
-        }).catch((err) => {
-            reject(err);
-        }).finally(() => {
-            connection.close();
+        }).then(() => {
             resolve({
                 "affectedRows": 1
             });
+        })
+        .catch((err) => {
+            reject(err);
+        })
+        .finally(() => {
+            connection.close();
         });
     });
 }
 
 /**
- * It save data in collection like refresg_token and otp
- * @param {string} id
- * user id
- * @param {object} data
- * data to be save in collection
+ * It save data in collection like refresh_token and otp
+ * 
+ * @param {string} id user id
+ * @param {object} data data to be save in collection
+ * @returns A promise
  */
-exports.save = (id, data) => {
-    return new Promise((resolve, reject) => {
-        var connection;
-        // console.log("id: " + id + "\nToken: " + token);
-        pool.getSession().then(session => {
-            var collection = session.getSchema(process.env.DB_NAME)
-                .getCollection("User_Auth_Tbl");
-            
-                connection = session;
-
-            return collection.modify("_id = :userid")
-            .bind("userid", id)
-            .patch(data)
-            .execute();
-        }).then((status) => {
-            resolve({
-                "affectedRows": status.getAffectedItemsCount()
-            });
-        }).catch((err) => {
-            reject(err);
-        }).finally(() => {
-            connection.close();
-        });
-    });
-};
+exports.save = {
+    authData: (id, data) => {
+        return updateUserAuthTable(id, data);
+    }
+}
 
 /**
  * It finds data from collection
- * @param {string} id
- * User id
- * @param {Array} fields
- * fields or columns to be retrieved 
+ * 
+ * @param {string} id User id
+ * @param {Array} fields fields or columns to be retrieved 
+ * @returns A promise
  */
 exports.findDoc = (id, fields) => {
     return new Promise((resolve, reject) => {
